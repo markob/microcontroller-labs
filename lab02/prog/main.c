@@ -6,6 +6,8 @@
 #define KBD_COLS_NUM	3
 #define KBD_SCAN_TRIES	3
 
+#define INVALID_KEY KBD_COLS_NUM*KBD_ROWS_NUM
+
 #define SIZEOF_ARRAY(arr) (sizeof(arr)/sizeof(arr[0]))
 
 sfr indicatorsPort 	= 0x90;
@@ -22,32 +24,38 @@ uint8_t outInfo[INDICATORS_NUM] = {0};
 
 uint8_t GetKeyPressed(void)
 {
-	uint8_t i, j, k, keys;
-	uint8_t key[KBD_COLS_NUM] = {0};
+	uint8_t i, keys;
+	uint8_t key = INVALID_KEY;
 
 	/* scan keyboard for changes */
-	/* scan keys column several times in order to avoid a jitter */
-	for (k = 0; k < KBD_SCAN_TRIES; k++) {
-		for (i = 0; i < KBD_ROWS_NUM; i++) {
-			uint8_t keyMask = 0x01;
+	for (i = 0; i < KBD_ROWS_NUM; i++) {
+		keysPort = 0x7f&(0x01<<i);
+		keys = keysPort&0x70;
 
-			keysPort = 0x7f&(0x10<<i);
-			keys = keysPort&0x0f;
-
-			for (j = 0; j < KBD_COLS_NUM; j++) {
-				key[j] += (keys&keyMask)>>j;
-
-				/* return first key code which is in high level 2 times */				
-				if (key[j] == 2) {
-					return j + i*KBD_COLS_NUM;
-				}
-
-				keyMask <<= 1;
+		if (keys != 0x70) {
+			/* some key in row was pressed */
+			switch (keys&0x70) {
+			case 0x60:
+				key = 1;
+				break; 
+			case 0x50:
+				key = 0x20;
+				break;
+			case 0x30:
+				key = 3;
+				break;
+			default:
+				key = INVALID_KEY;
+				break;
 			}
+		}
+
+		if (key != INVALID_KEY) {
+			return key + KBD_COLS_NUM*i;
 		}
 	}
 
-	return KBD_ROWS_NUM*KBD_COLS_NUM;
+	return INVALID_KEY;
 }
 
 void UpdateDisplay(void)
