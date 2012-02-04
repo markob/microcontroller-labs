@@ -16,40 +16,38 @@ sfr kbdScanPort = 0xB0;	/* P3 - 3 passive keyboard pins to scan */
 code uint8_t symsMap[] = {
 	0x03, 0x9F, 0x25, 0x0D, 0x99, 0x49, 0x41, 0x1F, 0x01, 0x09 };
 
-uint8_t outInfo[INDICATORS_NUM] = { 0xFF };
+#define KBD_ROWS_NUM 4
+#define KBD_COLS_NUM 3
+
+code uint8_t keyMap[KBD_ROWS_NUM][KBD_COLS_NUM] = {
+	{'0', '.', '*'},
+	{'1', '2', '3'},
+	{'4', '5', '6'},
+	{'7', '8', '9'}};
+
+uint8_t outInfo[INDICATORS_NUM] = { 0x00 };
 
 uint8_t GetKeyPressed(void)
 {
-	code uint8_t KBD_ROWS_NUM = 4;
-	code uint8_t KBD_COLS_NUM = 3;
-
-	uint8_t i, keys;
-	uint8_t kbdOutRow = 0xE0;
-	uint8_t kbdScanData;
+	uint8_t i, key;
 
 	/* scan keyboard for changes */
 	for (i = 0; i < KBD_ROWS_NUM; i++) {
-		/* update scan port - activate next keyboard row */
-		kbdOutRow &= 0xF0;
-		kbdOutRow <<= 1;
-		kbdOutRow += 0x10;
-		kbdOutRow |= kbdOutPort&0x0F;
-		kbdOutPort = kbdOutRow;
-				
-		kbdScanData = kbdScanPort;
-		kbdScanPort = kbdScanData|0xE0;
-		keys = kbdScanPort&0xE0;
+		key = kbdOutPort&0x0F;
+		kbdOutPort = key|(0x10<<i);
 
-		if (keys != 0xE0) {
-			/* some key in row was pressed */
-			switch (keys&0x70) {
-			case 0x60:
-				return 1 + i*KBD_COLS_NUM;
-			case 0x50:
-				return 2 + i*KBD_COLS_NUM;
-			case 0x30:
-				return 3 + i*KBD_COLS_NUM;
-			}
+		kbdScanPort |= 0xE0;
+		key = kbdScanPort&0xE0;
+
+		switch (key) {
+		case 0xC0:
+			return keyMap[i][0];
+		case 0xA0:
+			return keyMap[i][1];
+		case 0x60:
+			return keyMap[i][2];
+		default:
+			break;
 		}
 	}
 
@@ -106,6 +104,6 @@ void main(void)
 			}
 		}
 
-		UpdateDisplay();		
+		UpdateDisplay();
 	}
 }
