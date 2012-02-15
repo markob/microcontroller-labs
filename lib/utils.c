@@ -23,8 +23,8 @@ void InitUtils(void)
  	tickCount = 0;
 
 	/* setup timer with 1 ms resolution */
-	RCAP2H = 0xF8;
-	RCAP2L = 0x30;
+	RCAP2H = 0xFF;
+	RCAP2L = 0x38;
 
 	/* setup timer modes and run it */
 	CP_RL2 = 0;
