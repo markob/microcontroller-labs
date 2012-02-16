@@ -19,8 +19,10 @@ sbit SERVO_outputPin0 = SERVO_OUTPUT_PIN0;
 
 #endif
 
-typedef void (*ClockCallback_t)(void);
+#define SERVO_Start() (TR0 = 1)
+#define SERVO_Stop()  (TR0 = 0)
 
-uint8_t SERVO_SetAngle(uint8_t angle);
+void SERVO_Init(void);
+void SERVO_SetAngle(uint8_t angle);
 
 #endif
