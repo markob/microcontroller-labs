@@ -17,17 +17,8 @@
 #error system clock resolution is too low to control the servo
 #endif
 
-#define SERVO_FREQ_20MS 50
-#define SERVO_FREQ_02MS 500
-#define SERVO_FREQ_01MS 1000
-
-#define SERVO_FREQ_S1_TO_FREQ_S2(freq_s1) \
-	((freq_s1)*SERVO_FREQ_20MS/((freq_s1) - SERVO_FREQ_20MS))
-
-#define SERVO_GET_TH_REG_FROM_FREQ(freq) \
-	((0xFFFF - CRYSTAL_FREQUENCY/12/(freq) + 5)/256)
-#define SERVO_GET_TL_REG_FROM_FREQ(freq) \
-	((0xFFFF - CRYSTAL_FREQUENCY/12/(freq) + 5)%256)
+#define SERVO_TIMER_COUNT_20MS (CRYSTAL_FREQUENCY/600)
+#define SERVO_TIMER_COUNT_01MS (CRYSTAL_FREQUENCY/12000)
 
 static bit SERVO_isStartCycle = 0;
 
@@ -47,7 +38,7 @@ void SERVO_Timer0ISR(void) interrupt 1 using 3
 		TL0 = SERVO_s2RegTL;
 	}
 	
-	TF0 = 1;
+	TF0 = 0;
 	
 	/* do appropriate servo control operations */
 	SERVO_outputPin0 = SERVO_isStartCycle;
@@ -57,6 +48,8 @@ void SERVO_Timer0ISR(void) interrupt 1 using 3
 void SERVO_Init(void)
 {
 	/* initialize timer 0 as clock for the servo lib */
+	TMOD |= 0x01; 
+
 	TH0 = SERVO_s1RegTH;
 	TL0 = SERVO_s1RegTL;
 
@@ -67,19 +60,19 @@ void SERVO_Init(void)
 	EA  = 1;
 
 	/* initialize other servo lib stuff */
-	SERVO_isStartCycle = 0;
+	SERVO_isStartCycle = 1;
 }
 
 void SERVO_SetAngle(uint8_t angle)
 {
-	uint16_t freq = angle == 0 ? 10: 10 + 1800/angle; // *100
-	uint16_t count = 0xFFFF - (CRYSTAL_FREQUENCY/1200)/freq;// + 5;
+	uint16_t freq = angle == 0 ? 10: 1800/angle;
+	uint16_t count = 0xFFFF - SERVO_TIMER_COUNT_01MS - (CRYSTAL_FREQUENCY/1200)/freq + 5;
 
 	SERVO_s1RegTH = count/256;
 	SERVO_s1RegTL = count%256;
 
-	freq = freq*SERVO_FREQ_20MS/(freq - SERVO_FREQ_20MS);
-	count = 0xFFFF - (CRYSTAL_FREQUENCY/1200)/freq;// + 5;
+	count = 0xFFFF - SERVO_TIMER_COUNT_20MS +
+			(SERVO_TIMER_COUNT_01MS + (CRYSTAL_FREQUENCY/1200)/freq + 5);
 	
 	SERVO_s2RegTH = count/256;;
 	SERVO_s2RegTL = count%256;;		

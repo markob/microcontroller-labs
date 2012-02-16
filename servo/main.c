@@ -15,8 +15,8 @@ void main(void)
 	while (TRUE) {
 		uint8_t i;
 
-		for (i = 0; i < 10; i++) {
-			SERVO_SetAngle(90);
+		for (i = 0; i <= 10; i++) {
+			SERVO_SetAngle(i*18);
 			Delay(1000);
 		}
 	}
