@@ -4,6 +4,8 @@
 #include "types.h"
 #include "servo_config.h"
 
+#include <reg8253.h>
+
 #if (SERVO_DEVICE_COUNT > 2) || (SERVO_DEVICE_COUNT < 1)
 #error Servo motor outputs number should be 1 or 2
 #endif

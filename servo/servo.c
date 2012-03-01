@@ -1,24 +1,15 @@
 #include "servo.h"
 
-#if SYSVER == 52
+#if SYSVER == 53
+#include <reg8253.H>
+#elif SYSVER == 52
 #include <reg52.h>
 #else
 #include <reg51.h>
 #endif
 
-/* calculate system clock ticks per 1/100 of servo range (per 10 usecs) */
-#define SERVO_TICKS_PER_10US (CRYSTAL_FREQUENCY/12/100000)
-
-/**
- check timer ticks per 1/100 of servo range (about 10 usecs),
- it should be no less than 10
- */
-#if SERVO_TICKS_PER_10US < 10
-#error system clock resolution is too low to control the servo
-#endif
-
-#define SERVO_TIMER_COUNT_20MS (CRYSTAL_FREQUENCY/600)
-#define SERVO_TIMER_COUNT_01MS (CRYSTAL_FREQUENCY/12000)
+#define SERVO_TIMER_COUNT_20MS  (CRYSTAL_FREQUENCY/600)
+#define SERVO_TIMER_COUNT_005MS (CRYSTAL_FREQUENCY/24000)
 
 static bit SERVO_isStartCycle = 0;
 
@@ -38,6 +29,7 @@ void SERVO_Timer0ISR(void) interrupt 1 using 3
 		TL0 = SERVO_s2RegTL;
 	}
 	
+	PT0 = 1;
 	TF0 = 0;
 	
 	/* do appropriate servo control operations */
@@ -65,14 +57,15 @@ void SERVO_Init(void)
 
 void SERVO_SetAngle(uint8_t angle)
 {
-	uint16_t freq = angle == 0 ? 10: 1800/angle;
-	uint16_t count = 0xFFFF - SERVO_TIMER_COUNT_01MS - (CRYSTAL_FREQUENCY/1200)/freq + 5;
+	uint16_t freq = 20*angle/9;		   
+	uint16_t count = 0xFFFF -
+		SERVO_TIMER_COUNT_005MS*(100 + freq)/100 + 20;
 
 	SERVO_s1RegTH = count/256;
 	SERVO_s1RegTL = count%256;
 
 	count = 0xFFFF - SERVO_TIMER_COUNT_20MS +
-			(SERVO_TIMER_COUNT_01MS + (CRYSTAL_FREQUENCY/1200)/freq + 5);
+			SERVO_TIMER_COUNT_005MS*(100 + freq)/100 + 20;
 	
 	SERVO_s2RegTH = count/256;;
 	SERVO_s2RegTL = count%256;;		

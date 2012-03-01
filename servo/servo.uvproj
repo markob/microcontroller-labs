@@ -392,6 +392,16 @@
               <FileType>5</FileType>
               <FilePath>..\lib\types.h</FilePath>
             </File>
+            <File>
+              <FileName>uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\lib\uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\lib\uart.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

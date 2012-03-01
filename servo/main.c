@@ -1,4 +1,4 @@
-#include <reg52.h>
+#include <reg8253.h>
 
 #include "types.h"
 #include "servo.h"
@@ -15,8 +15,10 @@ void main(void)
 	while (TRUE) {
 		uint8_t i;
 
-		for (i = 0; i <= 10; i++) {
-			SERVO_SetAngle(i*18);
+		for (i = 2; i < 14; i++) {
+			SERVO_SetAngle(i*9);
+			Delay(1000);
+			SERVO_SetAngle((15 - i)*9);
 			Delay(1000);
 		}
 	}
