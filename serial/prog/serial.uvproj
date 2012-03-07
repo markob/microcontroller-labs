@@ -295,7 +295,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\lib</IncludePath>
+              <IncludePath>..\..\lib</IncludePath>
             </VariousControls>
           </C51>
           <Ax51>
@@ -357,21 +357,6 @@
               <FileType>1</FileType>
               <FilePath>.\main.c</FilePath>
             </File>
-            <File>
-              <FileName>servo.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\servo.c</FilePath>
-            </File>
-            <File>
-              <FileName>servo_config.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\servo_config.h</FilePath>
-            </File>
-            <File>
-              <FileName>servo.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\servo.h</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -380,27 +365,27 @@
             <File>
               <FileName>utils.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\lib\utils.c</FilePath>
-            </File>
-            <File>
-              <FileName>utils.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\lib\utils.h</FilePath>
-            </File>
-            <File>
-              <FileName>types.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\lib\types.h</FilePath>
+              <FilePath>..\..\lib\utils.c</FilePath>
             </File>
             <File>
               <FileName>uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\lib\uart.c</FilePath>
+              <FilePath>..\..\lib\uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>utils.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\lib\utils.h</FilePath>
+            </File>
+            <File>
+              <FileName>types.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\lib\types.h</FilePath>
             </File>
             <File>
               <FileName>uart.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\lib\uart.h</FilePath>
+              <FilePath>..\..\lib\uart.h</FilePath>
             </File>
           </Files>
         </Group>

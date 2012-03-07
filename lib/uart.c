@@ -26,7 +26,7 @@ void UART_Init(void)
 	// setup UART mode to 8N1 with timer 1 sync
 	SCON  = 0x50;
 	// setup timer 1 to UART mode
-	TH1	  = 0xFF;
+	TH1	  = 0xFC;
 	TMOD |= 0x20;
 	// run timer 1
 	TR1	  = 1;
