@@ -3,6 +3,14 @@
 //------------------------------------------------------------------------------
 // simple types declaration section
 
+enum Error_t {
+  ESUCCEED,
+  EINVARG,
+  ENOTSUPPORTED,
+  ENOMEMORY,
+  EUNKNOWN
+};
+
 enum State_t {
   SHDRSTART,
   SHDREND,
@@ -39,7 +47,7 @@ struct Event_t {
 template <class T, uint8_t _maxSize_>
 class Queue {
   public:
-    Queue(void):size_(0),start_(0),end_(0) {}
+    Queue(void):size_(0),start_(0),end_(0), isLocked_(false) {}
     ~Queue(void) {}
     
     boolean add(const T& item)
@@ -78,14 +86,44 @@ class Queue {
       return true;
     }
     
+    T* alloc(void)
+    {
+      if (size_ >= _maxSize_) {
+        return NULL;
+      }
+      
+      isLocked_ = true;
+      
+      return &queue_[end_];
+    }
+    
+    boolean commit(void)
+    {
+      if (isLocked_) {
+        if (++end_ == _maxSize_) {
+          end_ = 0;
+        }
+        
+        size_++;
+        isLocked_ = false;
+        
+        assert(end_ > start_ ? end_ - start_ == size_: _maxSize_ + start_ - end_ == size_);
+
+        return true;
+      }
+
+      return false;
+    }
+    
   private:
     Queue(const Queue&);
     Queue& operator=(const Queue&);
     
-    T queue_[maxSize];
+    T queue_[_maxSize_];
     uint8_t size_;
     uint8_t start_;
     uint8_t end_;
+    boolean isLocked_;
 };
 
 typedef Queue<Event_t, 20> EventQueue_t;
@@ -99,21 +137,31 @@ class EventManager
     EventManager();
     ~EventManager();
     
-    boolean fireEvent(Event_t evt);
-    boolean procEvent(Event_t evt);
+    Error_t fireEvent(EventType_t& type, Data_t& data);
+    Error_t procEvent(Event_t& evt);
     
   private:
     EventQueue_t eventQueue_;
 };
 
-boolean EventManager::fireEvent(Data_t& data)
+Error_t EventManager::fireEvent(EventType_t& type, Data_t& data)
 {
-  ;
+  Event_t* evt = eventQueue_.alloc();
+  if (evt != NULL) {
+    evt->type_ = type;
+    evt->data_ = data;
+    
+    eventQueue_.commit();
+    
+    return ESUCCEED;
+  }
+  
+  return EINVARG;
 }
 
-boolean EventManager::procEvent(Event_t& evt)
+Error_t EventManager::procEvent(Event_t& evt)
 {
-  ;
+  return ESUCCEED;
 }
 
 
@@ -175,7 +223,7 @@ State_t MessageProcessor::push(byte byteIn)
     break;
   case SHDREND:
     // second (last) byte of the message header
-    command_ |= byteIn>>7;
+    command_ = static_cast<Command_t>(command_ | byteIn>>7);
     dataLeft_ = byteIn&0x7F;
     
     // analyze paylod size
@@ -222,13 +270,13 @@ Command_t MessageProcessor::getCommand(void)
 }
 
 
-byte getData(byte* data, byte maxSize)
+byte MessageProcessor::getData(byte* data, byte maxSize)
 {
-  if (state_ > SHDREND && state < SREADY) {
+  if (state_ > SHDREND && state_ < SREADY) {
     dataBuf_ = data;
   }
   
-  while ((state > SHDREND && state_ < SDATREADY) && maxSize) {
+  while ((state_ > SHDREND && state_ < SREADY) && maxSize) {
     while (!Serial.available());
     push(Serial.read());
     maxSize--;
@@ -238,6 +286,75 @@ byte getData(byte* data, byte maxSize)
   
   return varLen_ - dataLeft_;
 }
+
+//------------------------------------------------------------------------------
+// virtual device base class definition
+
+class VirtualDevice
+{
+  public:
+    VirtualDevice(void);
+    ~VirtualDevice(void);
+    
+    inline boolean isValidId(uint8_t id) { if (id < maxId_) return true; else return false; }
+    
+    virtual Error_t subscribeToEvent(EventType_t type) = 0;
+    virtual Error_t doCommand(Command_t cmd) = 0;
+    
+  private:
+    VirtualDevice(const VirtualDevice&);
+    VirtualDevice& operator=(const VirtualDevice&);
+    
+    uint8_t maxId_; // stands for device params count
+};
+
+#define CHECK_DEVARG_ID(id) { if (!isValidId(id)) return EINVARG; }
+
+//------------------------------------------------------------------------------
+// virtual devices manager
+
+template <uint8_t _maxCount_>
+class DeviceManager
+{
+  public:
+    DeviceManager(void);
+    ~DeviceManager(void);
+    
+    Error_t addDev(uint8_t devId);
+    Error_t delDev(uint8_t devId);
+    
+    Error_t doCommand(uint8_t devId, Command_t cmd, uint8_t paramId, Data_t& data);
+        
+  private:
+    DeviceManager(const DeviceManager&);
+    DeviceManager& operator=(const DeviceManager&);
+
+    VirtualDevice* devices_[_maxCount_ + 1]; // first device is always a device manager
+};
+
+
+template<uint8_t _maxCount_>
+Error_t DeviceManager<_maxCount_>::doCommand(uint8_t devId, Command_t cmd, uint8_t paramId, Data_t& data)
+{
+  if (devId > _maxCount_) return EINVARG;
+  
+  return devices_[devId]->doCommand(cmd, paramId, data);
+}
+
+
+template<uint8_t _maxSize_>
+Error_t DeviceManager<_maxSize_>::addDev(uint8_t devId)
+{
+  return ESUCCEED;
+}
+
+
+template<uint8_t _maxCount_>
+Error_t DeviceManager<_maxCount_>::delDev(uint8_t devId)
+{
+  return ESUCCEED;
+}
+
 
 //------------------------------------------------------------------------------
 // default arduino stuff
@@ -261,5 +378,53 @@ void loop(void)
     byte dataSize = messageProcessor.getDataSize();
     messageProcessor.getData(dataBuf, dataSize);
   }
+}
+
+
+//------------------------------------------------------------------------------
+// implementation of simple switch device
+
+class BinarySwitch: public VirtualDevice
+{
+  public:
+    virtual Error_t subscribeToEvent(EventType_t type);
+    virtual Error_t doCommand(Command_t cmd, uint8_t paramId, Data_t& data);
+    
+  private:
+    BinarySwitch(const BinarySwitch&);
+    BinarySwitch& operator=(const BinarySwitch&);
+    
+    uint8_t output_;
+    uint8_t state_;
+};
+
+
+Error_t BinarySwitch::subscribeToEvent(EventType_t type)
+{
+  return ENOTSUPPORTED;
+}
+
+
+Error_t BinarySwitch::doCommand(Command_t cmd, uint8_t paramId, Data_t& data)
+{
+  Error_t rv = ESUCCEED;
+  
+  switch (cmd) {
+  case CMDGET:
+    CHECK_DEVARG_ID(paramId);
+    data.size_ = 1;
+    static_cast<uint8_t*>(data.data_)[0] = state_;
+    break;  
+  case CMDSET:
+    CHECK_DEVARG_ID(paramId);
+    digitalWrite(output_, static_cast<uint8_t*>(data.data_)[0]);
+    state_ = static_cast<uint8_t*>(data.data_)[0];
+    break;
+  default:
+    rv = EINVARG;
+    break;
+  }
+  
+  return rv;
 }
 
