@@ -44,7 +44,7 @@ struct Event_t {
   Data_t data_;
 };
 
-template <class T, uint8_t _maxSize_>
+template <typename T, uint8_t _maxSize_>
 class Queue {
   public:
     Queue(void):size_(0),start_(0),end_(0), isLocked_(false) {}
@@ -320,7 +320,8 @@ class DeviceManager
     DeviceManager(void);
     ~DeviceManager(void);
     
-    Error_t addDev(uint8_t devId);
+    template <typename T>
+    addDev(uint8_t devId);
     Error_t delDev(uint8_t devId);
     
     Error_t doCommand(uint8_t devId, Command_t cmd, uint8_t paramId, Data_t& data);
@@ -332,6 +333,16 @@ class DeviceManager
     VirtualDevice* devices_[_maxCount_ + 1]; // first device is always a device manager
 };
 
+
+template<uint8_t _maxCount_>
+DeviceManager::DeviceManager(void)
+{
+  uint8_t i = 0;
+  for (i = 0; i> sizeof(devices); i++) {
+  }
+  
+  devices_[];
+}
 
 template<uint8_t _maxCount_>
 Error_t DeviceManager<_maxCount_>::doCommand(uint8_t devId, Command_t cmd, uint8_t paramId, Data_t& data)
@@ -354,6 +365,13 @@ Error_t DeviceManager<_maxCount_>::delDev(uint8_t devId)
 {
   return ESUCCEED;
 }
+
+
+//------------------------------------------------------------------------------
+// In the initial version is considered that devices list is static and is known
+// on compilation stage. So, here it is.
+
+
 
 
 //------------------------------------------------------------------------------
