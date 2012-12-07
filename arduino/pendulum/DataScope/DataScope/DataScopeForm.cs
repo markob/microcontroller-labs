@@ -11,54 +11,61 @@ namespace DataScope
 {
     public partial class DataScopeForm : Form
     {
-        private Int32 count = 0;
         private Random rnd = new Random();
-        private System.Windows.Forms.DataVisualization.Charting.Axis axisX;
+
+        private UInt32[] data_y;
+
+        private UInt32 window_size;
+        private UInt32 sample_count;
+
+        private Bitmap image;
+        private Point start_pos;
 
         public DataScopeForm()
         {
             InitializeComponent();
+
+            window_size = (UInt32) Size.Width;
+            data_y = new UInt32[window_size];
+
+            sample_count = 0;
+
+            start_pos = new Point(0, 0);
+            image = new Bitmap(Size.Width, Size.Height);
         }
 
         private void DataScopeForm_Load(object sender, EventArgs e)
         {
-            var chartArea = this.scope.ChartAreas["chartArea"];
-            
-            chartArea.AxisX.Minimum = 0;
-            chartArea.AxisX.Maximum = 300;
-            chartArea.AxisY.Minimum = -600;
-            chartArea.AxisY.Maximum = 600;
-
-            chartArea.AxisX.MajorGrid.Interval = 50;
-            chartArea.AxisX.MinorGrid.Interval = 50;
-            chartArea.AxisX.Interval = 50;
-
-            chartArea.AxisY.MajorGrid.Interval = 200;
-            chartArea.AxisY.MinorGrid.Interval = 200;
-            chartArea.AxisY.Interval = 200;
-
-            axisX = chartArea.AxisX;
-
-            Timer timer = new Timer();
-            timer.Tick += new EventHandler(timer_Tick);
-            timer.Interval = 10;
+            timer.Interval = 100;
             timer.Enabled = true;
             timer.Start();
         }
 
-        private void timer_Tick(object sender, EventArgs e)
+        private void DataScopeForm_timer_Tick(object sender, EventArgs e)
         {
-            if (count > axisX.Maximum)
+            if (sample_count < window_size)
             {
-                axisX.Maximum++;
-                axisX.Minimum++;
+                data_y[sample_count] = (UInt32)Size.Height - (UInt32)rnd.Next() % (UInt32)Size.Height;
             }
+            //else
+            //{
 
-            this.scope.Series["series_x"].Points.AddXY(count, rnd.Next() % 1024 - 512);
-            this.scope.Series["series_y"].Points.AddXY(count, rnd.Next() % 1024 - 512);
-            this.scope.Series["series_z"].Points.AddXY(count, rnd.Next() % 1024 - 512);
+            //}
 
-            count++;            
+            sample_count++;
+
+            Graphics gBitmap = Graphics.FromImage(image);
+            Pen pen = new Pen(Color.Red, 1);
+            gBitmap.DrawLine(pen, (int)sample_count - 1, (int)data_y[sample_count - 1], (int)sample_count, (int)data_y[sample_count]);
+
+            Refresh();
         }
+
+        private void DataScopeForm_onPaint(object sender, PaintEventArgs e)
+        {
+            Graphics gForm = e.Graphics;
+            gForm.DrawImageUnscaled(image, start_pos);
+        }
+         
     }
 }
