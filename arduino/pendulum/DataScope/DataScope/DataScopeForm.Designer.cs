@@ -45,9 +45,7 @@
             this.Name = "DataScopeForm";
             this.Text = "Data Scope";
             this.Load += new System.EventHandler(this.DataScopeForm_Load);
-            this.Paint += new System.Windows.Forms.PaintEventHandler(this.DataScopeForm_onPaint);
             this.ResumeLayout(false);
-
         }
 
         #endregion
