@@ -30,7 +30,7 @@ namespace DataScope2 {
             // timer
             // 
             this.timer.Interval = 10;
-            this.timer.Tick += new System.EventHandler(this.Timer_onTick);
+            this.timer.Tick += new System.EventHandler(this.DataScopeForm_timer_onTick);
             // 
             // DataScopeForm
             // 
@@ -39,7 +39,6 @@ namespace DataScope2 {
             this.ClientSize = new System.Drawing.Size(632, 453);
             this.Name = "DataScopeForm";
             this.Text = "DataScope";
-            this.Paint += new System.Windows.Forms.PaintEventHandler(this.DataScopeForm_onPaint);
             this.Load += new System.EventHandler(this.DataScopeForm_onLoad);
             this.ResumeLayout(false);
 
