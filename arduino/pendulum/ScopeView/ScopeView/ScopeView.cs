@@ -46,8 +46,16 @@ namespace ScopeView {
         private Int32 gridStepVertical;
         private Int32 gridStepHorizontal;
 
-        private UInt32 drawAreaMaxX;
-        private UInt32 drawAreaMaxY;
+        private struct DrawAreaInfo {
+            public Int32 minX;
+            public Int32 minY;
+            public Int32 maxX;
+            public Int32 maxY;
+            public Int32 Width;
+            public Int32 Height;
+        }
+        
+        private DrawAreaInfo drawArea;
 
         public ScopeView() {
             InitializeComponent();
@@ -59,13 +67,34 @@ namespace ScopeView {
             bgColor = Color.LightGray;
 
             gridColor = Color.Black;
-            gridStepHorizontal = ClientSize.Height / 8;
-            gridStepVertical = ClientSize.Width / 10;
 
             samples = new LineData[linesNum];
             samples[0] = new LineData();
 
             samples[0].color = Color.Blue;
+        }
+
+        private void InitDrawingArea(Graphics graphics) {
+            Pen pen = new Pen(Color.Black, 1);
+            graphics.Clear(bgColor);
+
+            drawArea.minX = 1;
+            drawArea.minY = 1;
+            drawArea.maxX = ClientSize.Width - 2;
+            drawArea.maxY = ClientSize.Height - 2;
+            drawArea.Width = ClientSize.Width - 2;
+            drawArea.Height = ClientSize.Height - 2;
+
+            int maxX = ClientSize.Width - 1;
+            int maxY = ClientSize.Height - 1;
+            
+            graphics.DrawLine(pen, 0, 0, maxX, 0);
+            graphics.DrawLine(pen, 0, maxY, maxX, maxY);
+            graphics.DrawLine(pen, 0, 0, 0, maxY);
+            graphics.DrawLine(pen, maxX, 0, maxX, maxY);
+
+            gridStepHorizontal = drawArea.Height / 8;
+            gridStepVertical = drawArea.Width / 10;
         }
 
         private void DrawGrid(Graphics graphics, Pen pen) {
@@ -74,21 +103,16 @@ namespace ScopeView {
             pen.Width = 1;
 
             // horizontal grid
-            for (int i = 0; i < ClientSize.Height / 2; i += gridStepHorizontal) {
-                int yPos = ClientSize.Height / 2 + i;
-                graphics.DrawLine(pen, 0, yPos, ClientSize.Width - 1, yPos);
-                yPos = ClientSize.Height / 2 - i;
-                graphics.DrawLine(pen, 0, yPos, ClientSize.Width - 1, yPos);
+            for (int i = 0; i <= drawArea.Height / 2; i += gridStepHorizontal) {
+                int yPos = drawArea.Height / 2 + i + drawArea.minY;
+                graphics.DrawLine(pen, drawArea.minY, yPos, drawArea.maxX, yPos);
+                yPos = drawArea.Height / 2 - i + drawArea.minY;
+                graphics.DrawLine(pen, drawArea.minX, yPos, drawArea.maxX, yPos);
             }
             // vertical grid
-            for (int i = 0; i < ClientSize.Width; i += gridStepVertical) {
-                graphics.DrawLine(pen, i, 0, i, ClientSize.Height);
+            for (int i = 0; i < drawArea.Width; i += gridStepVertical) {
+                graphics.DrawLine(pen, i, drawArea.minY, i, drawArea.maxY);
             }
-
-            // boundaries
-            graphics.DrawLine(pen, 0, 0, ClientSize.Width - 1, 0);
-            graphics.DrawLine(pen, 0, ClientSize.Height - 1, ClientSize.Width - 1, ClientSize.Height - 1);
-            graphics.DrawLine(pen, ClientSize.Width - 1, 0, ClientSize.Width - 1, ClientSize.Height - 1);
         }
 
         private void UpdateGrid(Graphics graphics, Pen pen, int xPos) {
@@ -97,29 +121,24 @@ namespace ScopeView {
             pen.Width = 1;
 
             // horizontal grid
-            for (int i = 0; i < ClientSize.Height / 2; i += gridStepHorizontal) {
-                int yPos = ClientSize.Height / 2 + i;
+            for (int i = 0; i <= drawArea.Height / 2; i += gridStepHorizontal) {
+                int yPos = drawArea.Height / 2 + i + drawArea.minY;
                 graphics.DrawLine(pen, xPos, yPos, xPos + 1, yPos);
-                yPos = ClientSize.Height / 2 - i;
+                yPos = drawArea.Height / 2 - i + drawArea.minY;
                 graphics.DrawLine(pen, xPos, yPos, xPos + 1, yPos);
             }
             // vertical grid
             if (xPos % gridStepVertical == 0) {
-                graphics.DrawLine(pen, xPos, 0, xPos, ClientSize.Height - 1);
-            }
-
-            // boundaries
-            graphics.DrawLine(pen, xPos, 0, xPos + 1, 0);
-            graphics.DrawLine(pen, xPos, ClientSize.Height - 1, xPos + 1, ClientSize.Height - 1);
-            if (xPos == ClientSize.Width - 1) {
-                graphics.DrawLine(pen, ClientSize.Width - 1, 0, ClientSize.Width - 1, ClientSize.Height - 1);
+                graphics.DrawLine(pen, xPos, drawArea.minY, xPos, drawArea.maxY);
             }
         }
 
-        public void submitNewSample(UInt32[] samplesList) {
+        public void submitNewSample(UInt32[] dataIn) {
             for (int i = 0; i < samples.Length; i++) {
                 samples[i].prevSample = samples[i].sample;
-                samples[i].sample = samplesList[i];
+                // todo: check sample value range
+                if (dataIn[i] > drawArea.Height) samples[i].sample = (UInt32) drawArea.Height;
+                else samples[i].sample = dataIn[i];
             }
 
             sampleCount++;
@@ -133,9 +152,9 @@ namespace ScopeView {
 
             if (sampleCount > 1) {
                 // clear previous line
-                int xPos = (int)(sampleCount % ClientSize.Width);
+                int xPos = (int)(sampleCount % drawArea.Width) + drawArea.minX;
 
-                graphics.DrawLine(pen, xPos, 0, xPos, ClientSize.Height - 1);
+                graphics.DrawLine(pen, xPos, drawArea.minY, xPos, drawArea.maxY);
 
                 // draw grid
                 UpdateGrid(graphics, pen, xPos);
@@ -148,9 +167,10 @@ namespace ScopeView {
 
                 // draw cursor line
                 pen.Color = Color.Red;
-                graphics.DrawLine(pen, xPos + 2, 0, xPos + 2, ClientSize.Height - 1);
+                xPos = (xPos - drawArea.minX + 1) % drawArea.Width + drawArea.minX;
+                graphics.DrawLine(pen, xPos, drawArea.minY, xPos, drawArea.maxY);
             } else {
-                graphics.Clear(bgColor);
+                InitDrawingArea(graphics);
                 DrawGrid(graphics, pen);
             }
         }
