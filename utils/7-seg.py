@@ -1,3 +1,5 @@
+import copy
+
 class SevenSegmentsLED(object):
 
     _digits = { 0: [1, 1, 1, 1, 1, 1, 0, 0],
@@ -21,8 +23,7 @@ class SevenSegmentsLED(object):
                   "h": 7 }
 
     def __init__(self):
-        self.digits = self._digits
-        self.segments = self._segments
+        self.digits = copy.deepcopy(self._digits)
     
     def getNum(self, digit):
         num = 0
