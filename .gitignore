@@ -13,3 +13,18 @@ obj/
 Debug/
 Release/
 
+# Keil stuff
+*.obj
+*.__i
+*.lnp
+*.hex
+*.lst
+*.bak
+*.plg
+*.dbk
+*.pwi
+*.M51
+
+
+
+
