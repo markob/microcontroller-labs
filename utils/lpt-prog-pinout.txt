@@ -1,0 +1,8 @@
+DataStrobe    (01) -> X5 -> SCK
+DataOut D0    (02) -> X4 -> MOSI
+SetInSelected (17) -> X3 -> RST
+Get ACK       (10) <- X2 <- MISO  
+PaperEnd      (12) <- X6 <- +5V
+SelectIn      (13) <- X6 <- +5V
+ErrorIn       (15) <- X6 <- +5V
+18,19,20,21,22,23,24,25  -- Gnd

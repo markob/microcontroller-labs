@@ -24,6 +24,8 @@ Release/
 *.dbk
 *.pwi
 *.M51
+*.SRC
+*.ls1
 
 
 

@@ -1,0 +1,30 @@
+#include "sfsm.h"
+
+#include <reg52.h>
+
+/* SFSM states declaration */
+SFSM_BEGIN_STATES_DECL
+SFSM_DECL_STATE(LED_OFF)
+SFSM_DECL_STATE(LED_ON)
+SFSM_END_STATES_DECL
+
+SFSM_BEGIN_MAIN_ROUTINE
+
+/* do all initialization for SFSM */
+
+/* do all remaining initialization */
+
+/* state change processing block */
+SFSM_BEGIN_STATE_CHANGE_PROC
+
+SFSM_BEGIN_STATE_CHANGE(LED_OFF)
+	P0 = 0x00;
+SFSM_END_STATE_CHANGE
+
+SFSM_BEGIN_STATE_CHANGE(LED_ON)
+	P0 = 0xFF;
+SFSM_END_STATE_CHANGE
+
+SFSM_END_STATE_CHANGE_PROC
+
+SFSM_END_MAIN_ROUTINE
