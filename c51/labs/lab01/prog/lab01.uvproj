@@ -362,19 +362,19 @@
           <GroupName>lib</GroupName>
           <Files>
             <File>
-              <FileName>utils.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\lib\utils.c</FilePath>
+              <FileName>utils.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\lib\utils.h</FilePath>
             </File>
             <File>
               <FileName>types.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\lib\types.h</FilePath>
+              <FilePath>..\..\..\lib\types.h</FilePath>
             </File>
             <File>
-              <FileName>utils.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\lib\utils.h</FilePath>
+              <FileName>utils.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\lib\utils.c</FilePath>
             </File>
           </Files>
         </Group>

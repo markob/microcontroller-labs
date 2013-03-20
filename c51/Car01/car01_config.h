@@ -1,7 +1,7 @@
 #ifndef CAR01_CONFIG_H_
 #define CAR01_CONFIG_H_
 
-#define CAR_CONTROL_PORT_NUM 1
+#define CAR_CONTROL_PORT_NUM 2
 
 #define CAR_MOVE_FWD_PIN_NUM 3
 #define CAR_MOVE_BWD_PIN_NUM 4

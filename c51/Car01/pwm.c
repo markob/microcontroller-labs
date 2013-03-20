@@ -28,14 +28,18 @@
 #define PWM_TIMER0_REG_TL ((0xFFFF - CRYSTAL_FREQUENCY/3200/12 + 1)%256)
 
 static uint8_t PWM_pin1Up;
-static uint8_t PWM_pin1Down;
 static uint8_t PWM_pin2Up;
-static uint8_t PWM_pin2Down;
 
 static uint8_t PWM_pin1UpCfg;
-static uint8_t PWM_pin1DownCfg;
 static uint8_t PWM_pin2UpCfg;
+
+#if USE_PHASE_CORRECTED_PWM == 1
+static uint8_t PWM_pin1Down;
+static uint8_t PWM_pin2Down;
+
+static uint8_t PWM_pin1DownCfg;
 static uint8_t PWM_pin2DownCfg;
+#endif
 
 static uint8_t PWM_tickCount = 0;
 static bit PWM_updateIsRequired = 0;
@@ -70,30 +74,45 @@ void PWM_timerHandle(void) interrupt 1 using 2
 	if (!PWM_tickCount&&PWM_updateIsRequired) {
 		// here config updates should be applied
 		PWM_pin1Up = PWM_pin1UpCfg;
-		PWM_pin1Down = PWM_pin1DownCfg;
 		PWM_pin2Up = PWM_pin2UpCfg;
+
+#if USE_PHASE_CORRECTED_PWM == 1
+		PWM_pin1Down = PWM_pin1DownCfg;
 		PWM_pin2Down = PWM_pin2DownCfg;
+#endif
 
 		PWM_updateIsRequired = 0;
 	}
 	
 	// do PWM switch stuff and select next switch target
+#if USE_PHASE_CORRECTED_PWM == 1
 	if ((PWM_tickCount == PWM_pin1Up) &&
 		(PWM_tickCount != PWM_LEVELS_NUMBER)) {
 		PWM_OUTPUT_PORT |= PWM_PIN1_MASK;
 	} else if (PWM_tickCount == PWM_pin1Down) {
 		PWM_OUTPUT_PORT &= PWM_PIN1_IMASK;				
 	}
-	// do PWM switch stuff and select next switch target
 	if ((PWM_tickCount == PWM_pin2Up) &&
 		(PWM_tickCount != PWM_LEVELS_NUMBER)) {
 		PWM_OUTPUT_PORT |= PWM_PIN2_MASK;
 	} else if (PWM_tickCount == PWM_pin2Down) {
 		PWM_OUTPUT_PORT &= PWM_PIN2_IMASK;				
 	}
+#else
+	if (PWM_tickCount == PWM_LEVELS_NUMBER - 1) {
+		PWM_OUTPUT_PORT &= PWM_PIN1_IMASK;				
+	} else if (PWM_tickCount == PWM_pin1Up) {
+		PWM_OUTPUT_PORT |= PWM_PIN1_MASK;
+	} 
+	if (PWM_tickCount == PWM_LEVELS_NUMBER - 1) {
+		PWM_OUTPUT_PORT &= PWM_PIN2_IMASK;				
+	} else if (PWM_tickCount == PWM_pin2Up) {
+		PWM_OUTPUT_PORT |= PWM_PIN2_MASK;
+	}
+#endif
 
 	// update timer tick counts
-	PWM_tickCount = (PWM_tickCount + 1)%(2*PWM_LEVELS_NUMBER);
+	PWM_tickCount = ++PWM_tickCount&PWM_LEVELS_MASK;
 }
 
 void PWM_SetPinOnOffFactor(uint8_t pinNumber, uint8_t onOffFactor)
@@ -103,11 +122,15 @@ void PWM_SetPinOnOffFactor(uint8_t pinNumber, uint8_t onOffFactor)
 	if (pinNumber == 0) {
 		// first pin is going to be updated
 		PWM_pin1UpCfg = count;
-		PWM_pin1DownCfg = (2*PWM_LEVELS_NUMBER - count)%(2*PWM_LEVELS_NUMBER);
+#if USE_PHASE_CORRECTED_PWM == 1
+		PWM_pin1DownCfg = (2*PWM_LEVELS_NUMBER - count)&PWM_LEVELS_MASK;
+#endif
 	} else if (pinNumber == 1) {
 		// second pin is going to be updated
 		PWM_pin2UpCfg = count;
-		PWM_pin2DownCfg =  (2*PWM_LEVELS_NUMBER - count)%(2*PWM_LEVELS_NUMBER);
+#if USE_PHASE_CORRECTED_PWM == 1
+		PWM_pin2DownCfg =  (2*PWM_LEVELS_NUMBER - count)&PWM_LEVELS_MASK;
+#endif
 	}
 
 	// set update required flag

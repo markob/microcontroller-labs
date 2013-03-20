@@ -1,5 +1,5 @@
 #include <reg52.h>
-#include "types.h"
+#include "../../../lib/types.h"
 
 #define INDICATORS_NUM	4
 

@@ -1,5 +1,5 @@
 #include <reg52.h>
-#include "utils.h"
+#include "../../../lib/utils.h"
 
 sbit servoPin = 0x90 + 1;
 
