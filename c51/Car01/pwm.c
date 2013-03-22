@@ -30,26 +30,29 @@
 static uint8_t PWM_pin1Up;
 static uint8_t PWM_pin2Up;
 
+#if USE_PHASE_CORRECTED_PWM == 1
 static uint8_t PWM_pin1UpCfg;
 static uint8_t PWM_pin2UpCfg;
 
-#if USE_PHASE_CORRECTED_PWM == 1
 static uint8_t PWM_pin1Down;
 static uint8_t PWM_pin2Down;
 
 static uint8_t PWM_pin1DownCfg;
 static uint8_t PWM_pin2DownCfg;
+
+static bit PWM_updateIsRequired = 0;
 #endif
 
 static uint8_t PWM_tickCount = 0;
-static bit PWM_updateIsRequired = 0;
 
 /* Initialize PWM source based on timer 0 */
 void PWM_Init(void)
 {
 	// set PWM stuf
-	PWM_tickCount = 0;
+	PWM_tickCount = PWM_LEVELS_NUMBER - 1;
+#if USE_PHASE_CORRECTED_PWM == 1
 	PWM_updateIsRequired = 0;
+#endif
 
 	// setup timer 0 as 16-bit timer
 	TMOD |= 0x01;
@@ -71,68 +74,77 @@ void PWM_timerHandle(void) interrupt 1 using 2
 
 	TF0 = 0;
 
+#if USE_PHASE_CORRECTED_PWM == 1
 	if (!PWM_tickCount&&PWM_updateIsRequired) {
 		// here config updates should be applied
 		PWM_pin1Up = PWM_pin1UpCfg;
 		PWM_pin2Up = PWM_pin2UpCfg;
 
-#if USE_PHASE_CORRECTED_PWM == 1
 		PWM_pin1Down = PWM_pin1DownCfg;
 		PWM_pin2Down = PWM_pin2DownCfg;
-#endif
 
 		PWM_updateIsRequired = 0;
 	}
 	
 	// do PWM switch stuff and select next switch target
-#if USE_PHASE_CORRECTED_PWM == 1
-	if ((PWM_tickCount == PWM_pin1Up) &&
-		(PWM_tickCount != PWM_LEVELS_NUMBER)) {
-		PWM_OUTPUT_PORT |= PWM_PIN1_MASK;
-	} else if (PWM_tickCount == PWM_pin1Down) {
+	if ((PWM_tickCount == PWM_pin1Down) && PWM_pin1Up) {
 		PWM_OUTPUT_PORT &= PWM_PIN1_IMASK;				
 	}
-	if ((PWM_tickCount == PWM_pin2Up) &&
-		(PWM_tickCount != PWM_LEVELS_NUMBER)) {
-		PWM_OUTPUT_PORT |= PWM_PIN2_MASK;
-	} else if (PWM_tickCount == PWM_pin2Down) {
+	if ((PWM_tickCount == PWM_pin2Down) && PWM_pin2Up) {
 		PWM_OUTPUT_PORT &= PWM_PIN2_IMASK;				
+	}
+
+	// update timer tick counters
+	PWM_tickCount = ++PWM_tickCount&PWM_LEVELS_MASK;
+
+	if ((PWM_tickCount == PWM_pin1Up) && (PWM_pin1Down > PWM_pin1Up)) {
+		PWM_OUTPUT_PORT |= PWM_PIN1_MASK;
+	}
+	if ((PWM_tickCount == PWM_pin2Up) && (PWM_pin2Down > PWM_pin2Up)) {
+		PWM_OUTPUT_PORT |= PWM_PIN2_MASK;
 	}
 #else
-	if (PWM_tickCount == PWM_LEVELS_NUMBER - 1) {
+	if ((PWM_tickCount == PWM_LEVELS_NUMBER - 1) && PWM_pin1Up) {
 		PWM_OUTPUT_PORT &= PWM_PIN1_IMASK;				
-	} else if (PWM_tickCount == PWM_pin1Up) {
+	}
+	if ((PWM_tickCount == PWM_LEVELS_NUMBER - 1) && PWM_pin2Up) {
+		PWM_OUTPUT_PORT &= PWM_PIN2_IMASK;				
+	}
+
+	// update timer tick counters
+	PWM_tickCount = ++PWM_tickCount&PWM_LEVELS_MASK;
+
+	if (PWM_tickCount == PWM_pin1Up) {
 		PWM_OUTPUT_PORT |= PWM_PIN1_MASK;
 	} 
-	if (PWM_tickCount == PWM_LEVELS_NUMBER - 1) {
-		PWM_OUTPUT_PORT &= PWM_PIN2_IMASK;				
-	} else if (PWM_tickCount == PWM_pin2Up) {
+	if (PWM_tickCount == PWM_pin2Up) {
 		PWM_OUTPUT_PORT |= PWM_PIN2_MASK;
 	}
 #endif
-
-	// update timer tick counts
-	PWM_tickCount = ++PWM_tickCount&PWM_LEVELS_MASK;
 }
 
 void PWM_SetPinOnOffFactor(uint8_t pinNumber, uint8_t onOffFactor)
 {
-	uint8_t count = PWM_LEVELS_NUMBER - onOffFactor;
+uint8_t count = PWM_LEVELS_NUMBER - onOffFactor;
 
+#if USE_PHASE_CORRECTED_PWM == 1
 	if (pinNumber == 0) {
 		// first pin is going to be updated
 		PWM_pin1UpCfg = count;
-#if USE_PHASE_CORRECTED_PWM == 1
-		PWM_pin1DownCfg = (2*PWM_LEVELS_NUMBER - count)&PWM_LEVELS_MASK;
-#endif
+		PWM_pin1DownCfg = (2*PWM_LEVELS_NUMBER - count - 1)&PWM_LEVELS_MASK;
 	} else if (pinNumber == 1) {
 		// second pin is going to be updated
 		PWM_pin2UpCfg = count;
-#if USE_PHASE_CORRECTED_PWM == 1
-		PWM_pin2DownCfg =  (2*PWM_LEVELS_NUMBER - count)&PWM_LEVELS_MASK;
-#endif
+		PWM_pin2DownCfg = (2*PWM_LEVELS_NUMBER - count - 1)&PWM_LEVELS_MASK;
 	}
 
 	// set update required flag
 	PWM_updateIsRequired = 1;
+#else
+	if (pinNumber == 0) {
+		PWM_pin1Up = count;
+	} else if (pinNumber == 1) {
+		PWM_pin2Up = count;
+	}
+#endif
 }

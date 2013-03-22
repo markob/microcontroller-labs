@@ -376,6 +376,11 @@
               <FileType>5</FileType>
               <FilePath>.\pwm_config.h</FilePath>
             </File>
+            <File>
+              <FileName>config.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\config.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>
