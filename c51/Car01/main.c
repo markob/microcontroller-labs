@@ -2,6 +2,7 @@
 #include "types.h"
 
 #include "pwm.h"
+#include "uart.h"
 
 void main(void)
 {
@@ -18,6 +19,12 @@ void main(void)
 
 	// start PWM
 	PWM_Start();
+
+	// initialize UART
+	UART_Init();
+
+	UART_SendByte('A');
+	UART_SendByte('T');
 
 	while (TRUE) {
 		uint16_t i = 0; for (++i; i != 0; i++);

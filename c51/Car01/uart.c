@@ -8,6 +8,7 @@
 static uint8_t UART_inputQueue[UART_INPUT_QUEUE_SIZE];
 static uint8_t UART_inputQueueReadIndex = 0;
 static uint8_t UART_inputQueueWriteIndex = 0;
+
 static bit UART_isInputQueueFull = 0;
 
 #define UART_OUTPUT_QUEUE_SIZE 4
@@ -15,6 +16,7 @@ static bit UART_isInputQueueFull = 0;
 static uint8_t UART_outputQueue[UART_OUTPUT_QUEUE_SIZE];
 static uint8_t UART_outputQueueReadIndex = 0;
 static uint8_t UART_outputQueueWriteIndex = 0;
+
 static bit UART_isOutputQueueFull = 0;
 static bit UART_isOutputQueueEmpty = 1;
 static bit UART_isOutputReady = 0;
@@ -48,7 +50,7 @@ void UART_Init(void)
 
 #if UART_USE_SYNC_API == 0
 
-static void UART_eventHandler(void) interrupt 4 using 3
+static void UART_eventHandler(void) interrupt 4 using 1
 {
 	if (RI) {
 		// if input queue is full we are unable to receive any data
