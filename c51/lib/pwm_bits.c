@@ -112,34 +112,28 @@ void PWM_timerHandle(void) interrupt 1 using 2
 		else PWM_pin22 = 1;
 	}
 #else
-	if ((PWM_tickCount == PWM_LEVELS_NUMBER - 1) && PWM_pin1Up) {
-		PWM_pin11 = 0;
-		PWM_pin12 = 0;					
-		PWM_pin21 = 0;
-		PWM_pin22 = 0;					
+	if (PWM_tickCount == PWM_LEVELS_NUMBER - 1) {
+	 	if (PWM_pin1Up) {
+			PWM_pin11 = 0;
+			PWM_pin12 = 0;
+		}
+		if (PWM_pin2Up) {
+			PWM_pin21 = 0;
+			PWM_pin22 = 0;
+		}
 	}
-
+	
 	// update timer tick counters
 	PWM_tickCount = ++PWM_tickCount&PWM_LEVELS_MASK;
 
-	#pragma asm
-	MOV A,PWM_tickCount
-	CJNE A,PWM_pin1Up,pin1_done
-	JNB PWM_pin1dir,set_pin12 
-	SETB PWM_pin11
-	SJMP pin1_done
-set_pin12:  
-	SETB PWM_pin12
-pin1_done:
-
-	CJNE A,PWM_pin2Up,pin2_done
-	JNB PWM_pin2dir,set_pin22
-	SETB PWM_pin21
-	SJMP pin2_done
-set_pin22:
-	SETB PWM_pin22
-pin2_done:
-	#pragma endasm
+	if (PWM_tickCount == PWM_pin1Up) {
+		if (PWM_pin1dir) PWM_pin11 = 1;
+		else PWM_pin12 = 1;
+	}
+	if (PWM_tickCount == PWM_pin2Up) {
+		if (PWM_pin2dir) PWM_pin21 = 1;
+		else PWM_pin22 = 1;
+	}
 #endif
 }
 
@@ -177,9 +171,6 @@ uint8_t count = PWM_LEVELS_NUMBER - onOffFactor;
 	switch (pin) {
 	case PWM_PIN11:
 		PWM_pin1dir = 1;
-		#pragma asm
-		mov R7,count?242
-		#pragma endasm
 		PWM_pin1Up = count;
 		break;
 	case PWM_PIN12:
