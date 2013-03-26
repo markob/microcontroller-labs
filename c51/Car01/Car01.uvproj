@@ -362,34 +362,29 @@
               <FilePath>.\main.c</FilePath>
             </File>
             <File>
-              <FileName>pwm.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\pwm.c</FilePath>
-            </File>
-            <File>
-              <FileName>pwm.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\pwm.h</FilePath>
-            </File>
-            <File>
-              <FileName>pwm_config.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\pwm_config.h</FilePath>
-            </File>
-            <File>
               <FileName>config.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\config.h</FilePath>
             </File>
             <File>
+              <FileName>pwm_bits.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\lib\pwm_bits.c</FilePath>
+            </File>
+            <File>
+              <FileName>pwm_bits.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\lib\pwm_bits.h</FilePath>
+            </File>
+            <File>
               <FileName>uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\uart.c</FilePath>
+              <FilePath>..\lib\uart.c</FilePath>
             </File>
             <File>
               <FileName>uart.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\uart.h</FilePath>
+              <FilePath>..\lib\uart.h</FilePath>
             </File>
           </Files>
         </Group>
