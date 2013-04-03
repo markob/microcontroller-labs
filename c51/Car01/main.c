@@ -4,6 +4,7 @@
 #include "config.h"
 #include "../lib/pwm_bits.h"
 #include "../lib/uart.h"
+#include "../lib/utils.h"
 
 typedef enum {
 	MOVE_FW,
@@ -34,22 +35,18 @@ typedef enum {
 
 void main(void)
 {
-	uint8_t count = 0;
-
 	// initialize motors control module (PWM)
 	InitMotors();
 
 	// initialize UART
 	UART_Init();
 
+	InitUtils();
+	Delay(2000);
+
 	while (TRUE) {
-		uint16_t i = 0; for (++i; i != 0; i++);
-
-		CarMoveFw(count%17);
-		if (count&0x01) CarTurnR();
-		else CarTurnL();
-
-		++count;
+		CarMoveFw(12);
+		CarTurnL();
 	}
 }
 

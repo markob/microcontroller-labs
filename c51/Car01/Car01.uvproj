@@ -379,8 +379,8 @@
                   <ModuleSelection>0</ModuleSelection>
                   <IncludeInBuild>2</IncludeInBuild>
                   <AlwaysBuild>2</AlwaysBuild>
-                  <GenerateAssemblyFile>1</GenerateAssemblyFile>
-                  <AssembleAssemblyFile>1</AssembleAssemblyFile>
+                  <GenerateAssemblyFile>2</GenerateAssemblyFile>
+                  <AssembleAssemblyFile>2</AssembleAssemblyFile>
                   <PublicsOnly>2</PublicsOnly>
                   <StopOnExitCode>11</StopOnExitCode>
                   <CustomArgument></CustomArgument>
@@ -425,6 +425,11 @@
               <FileName>uart.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\lib\uart.h</FilePath>
+            </File>
+            <File>
+              <FileName>utils.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\lib\utils.c</FilePath>
             </File>
           </Files>
         </Group>
