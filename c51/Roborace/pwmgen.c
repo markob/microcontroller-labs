@@ -1,7 +1,7 @@
 #include <reg52.h>
 #include <string.h>
 
-#include "pwm_bits.h"
+#include "pwmgen.h"
 
 /*
  * Description of the PWM generator algorithm
@@ -25,24 +25,11 @@
  * interrupted by PWM module ISR.
  */
 
-#define PWM_TIMER0_REG_TH ((0xFFFF - CRYSTAL_FREQUENCY/3200/12 + 1)/256)
-#define PWM_TIMER0_REG_TL ((0xFFFF - CRYSTAL_FREQUENCY/3200/12 + 1)%256)
+#define PWM_TIMER1_REG_TH ((0xFFFF - CRYSTAL_FREQUENCY/3200/12 + 1)/256)
+#define PWM_TIMER1_REG_TL ((0xFFFF - CRYSTAL_FREQUENCY/3200/12 + 1)%256)
 
 static uint8_t PWM_pin1Up;
 static uint8_t PWM_pin2Up;
-
-#if USE_PHASE_CORRECTED_PWM == 1
-static uint8_t PWM_pin1UpCfg;
-static uint8_t PWM_pin2UpCfg;
-
-static uint8_t PWM_pin1Down;
-static uint8_t PWM_pin2Down;
-
-static uint8_t PWM_pin1DownCfg;
-static uint8_t PWM_pin2DownCfg;
-
-static bit PWM_updateIsRequired = 0;
-#endif
 
 static uint8_t PWM_tickCount = 0;
 
@@ -54,64 +41,27 @@ void PWM_Init(void)
 {
 	// set PWM stuf
 	PWM_tickCount = PWM_LEVELS_NUMBER - 1;
-#if USE_PHASE_CORRECTED_PWM == 1
-	PWM_updateIsRequired = 0;
-#endif
 
 	// setup timer 0 as 16-bit timer
-	TMOD |= 0x01;
+	TMOD |= 0x10;
 	// setup initial value for timer
-	TH0 = PWM_TIMER0_REG_TH;
-	TL0 = PWM_TIMER0_REG_TL;
+	TH1 = PWM_TIMER1_REG_TH;
+	TL1 = PWM_TIMER1_REG_TL;
 	// run pwm timer with high priority
-	PT0 = 1;
+	PT1 = 1;
 	EA  = 1;
-	ET0 = 1;
+	ET1 = 1;
 }
 
 /* All PWM routine functionality is embedded to the PWM timer ISR */
-void PWM_timerHandle(void) interrupt 1 using 2	 
+void PWM_timerHandle(void) interrupt 3 using 2	 
 {
 	// restart timer
-	TH0 = PWM_TIMER0_REG_TH;
-	TL0 = PWM_TIMER0_REG_TL;
+	TH1 = PWM_TIMER1_REG_TH;
+	TL1 = PWM_TIMER1_REG_TL;
 
-	TF0 = 0;
+	TF1 = 0;
 
-#if USE_PHASE_CORRECTED_PWM == 1
-	if (!PWM_tickCount&&PWM_updateIsRequired) {
-		// here config updates should be applied
-		PWM_pin1Up = PWM_pin1UpCfg;
-		PWM_pin2Up = PWM_pin2UpCfg;
-
-		PWM_pin1Down = PWM_pin1DownCfg;
-		PWM_pin2Down = PWM_pin2DownCfg;
-
-		PWM_updateIsRequired = 0;
-	}
-	
-	// do PWM switch stuff and select next switch target
-	if ((PWM_tickCount == PWM_pin1Down) && PWM_pin1Up) {
-		PWM_pin11 = 0;
-		PWM_pin12 = 0;				
-	}
-	if ((PWM_tickCount == PWM_pin2Down) && PWM_pin2Up) {
-		PWM_pin21 = 0;
-		PWM_pin22 = 0;
-	}
-
-	// update timer tick counters
-	PWM_tickCount = ++PWM_tickCount&PWM_LEVELS_MASK;
-
-	if ((PWM_tickCount == PWM_pin1Up) && (PWM_pin1Down > PWM_pin1Up)) {
-		if (PWM_pin1dir) PWM_pin11 = 1;
-		else PWM_pin12 = 1;
-	}
-	if ((PWM_tickCount == PWM_pin2Up) && (PWM_pin2Down > PWM_pin2Up)) {
-		if (PWM_pin2dir) PWM_pin21 = 1;
-		else PWM_pin22 = 1;
-	}
-#else
 	if (PWM_tickCount == PWM_LEVELS_NUMBER - 1) {
 	 	if (PWM_pin1Up) {
 			PWM_pin11 = 0;
@@ -134,40 +84,12 @@ void PWM_timerHandle(void) interrupt 1 using 2
 		if (PWM_pin2dir) PWM_pin21 = 1;
 		else PWM_pin22 = 1;
 	}
-#endif
 }
 
 void PWM_SetPinOnOffFactor(PWM_OutPin pin, uint8_t onOffFactor)
 {
-uint8_t count = PWM_LEVELS_NUMBER - onOffFactor;
+	uint8_t count = PWM_LEVELS_NUMBER - onOffFactor;
 
-#if USE_PHASE_CORRECTED_PWM == 1
-	switch (pin) {
-	case PWM_PIN11:
-		PWM_pin1dir = 1;
-		PWM_pin1UpCfg = count;
-		PWM_pin1DownCfg = (2*PWM_LEVELS_NUMBER - count - 1)&PWM_LEVELS_MASK;
-		break;
-	case PWM_PIN12:
-		PWM_pin1dir = 0;
-		PWM_pin1UpCfg = count;
-		PWM_pin1DownCfg = (2*PWM_LEVELS_NUMBER - count - 1)&PWM_LEVELS_MASK;
-		break;
-	case PWM_PIN21:
-		PWM_pin2dir = 1;
-		PWM_pin2UpCfg = count;
-		PWM_pin2DownCfg = (2*PWM_LEVELS_NUMBER - count - 1)&PWM_LEVELS_MASK;
-		break;
-	case PWM_PIN22:
-		PWM_pin2dir = 0;
-		PWM_pin2UpCfg = count;
-		PWM_pin2DownCfg = (2*PWM_LEVELS_NUMBER - count - 1)&PWM_LEVELS_MASK;
-		break;
-	}
-
-	// set update required flag
-	PWM_updateIsRequired = 1;
-#else
 	switch (pin) {
 	case PWM_PIN11:
 		PWM_pin1dir = 1;
@@ -186,5 +108,4 @@ uint8_t count = PWM_LEVELS_NUMBER - onOffFactor;
 		PWM_pin2Up = count;
 		break;
 	}
-#endif
 }
