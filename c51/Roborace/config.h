@@ -10,6 +10,7 @@
 #define TSK_LINE_SCAN 1
 #define TSK_RANGE_SCAN 2
 #define TSK_UART_READ 3
+#define TSK_UART_WRITE 4
 
 #ifndef SYS_MAIN_TASK
 extern uint8_t SYS_status;

@@ -3,6 +3,14 @@
 
 #include "types.h"
 
+typedef union {
+	uint16_t wd;
+	struct {
+		uint8_t hb;
+		uint8_t lb;
+	} bt;
+} UART_RecvData_t;
+
 void UART_Init(void);
 
 /* Sends a byte to through UART and wait till transmission end */

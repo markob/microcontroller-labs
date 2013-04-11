@@ -15,7 +15,8 @@ void main_task(void) _task_ 0
 	/* initialize all other tasks */
 	os_create_task(TSK_LINE_SCAN);  /* task for line scanner read */	
 	os_create_task(TSK_RANGE_SCAN); /* task for range scanner read */
-	os_create_task(TSK_UART_READ);  /* task for UART input read */
+	os_create_task(TSK_UART_READ);  /* task for UART read */
+	os_create_task(TSK_UART_WRITE);  /* task for UART write */
 
 	/* initialize motor controller modules (PWM generator) */
 	InitMotors();
