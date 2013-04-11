@@ -44,4 +44,4 @@ def ShowOscillatorsForUART(desSpeed, doubleSpeed=False):
 	for freq in oscillators:
 		CalculateParamsForUART(freq, desSpeed, doubleSpeed)
 
-ShowOscillatorsForUART(9600)
+ShowOscillatorsForUART(38400)
