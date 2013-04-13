@@ -25,8 +25,8 @@
  * interrupted by PWM module ISR.
  */
 
-#define PWM_TIMER1_REG_TH ((0xFFFF - CRYSTAL_FREQUENCY/3200/12 + 1)/256)
-#define PWM_TIMER1_REG_TL ((0xFFFF - CRYSTAL_FREQUENCY/3200/12 + 1)%256)
+#define PWM_TIMER_REG_TH ((0xFFFF - CRYSTAL_FREQUENCY/3200/12 + 1)/256)
+#define PWM_TIMER_REG_TL ((0xFFFF - CRYSTAL_FREQUENCY/3200/12 + 1)%256)
 
 static uint8_t PWM_pin1Up;
 static uint8_t PWM_pin2Up;
@@ -43,24 +43,21 @@ void PWM_Init(void)
 	PWM_tickCount = PWM_LEVELS_NUMBER - 1;
 
 	// setup timer 0 as 16-bit timer
-	TMOD |= 0x10;
+	T2CON= 0x00;
 	// setup initial value for timer
-	TH1 = PWM_TIMER1_REG_TH;
-	TL1 = PWM_TIMER1_REG_TL;
+	RCAP2H = PWM_TIMER_REG_TH;
+	RCAP2L = PWM_TIMER_REG_TL;
 	// run pwm timer with high priority
-	PT1 = 1;
+	PT2 = 1;
 	EA  = 1;
-	ET1 = 1;
+	ET2 = 1;
 }
 
 /* All PWM routine functionality is embedded to the PWM timer ISR */
-void PWM_timerHandle(void) interrupt 3 using 2	 
+void PWM_timerHandle(void) interrupt 5 using 2	 
 {
 	// restart timer
-	TH1 = PWM_TIMER1_REG_TH;
-	TL1 = PWM_TIMER1_REG_TL;
-
-	TF1 = 0;
+	TF2 = 0;
 
 	if (PWM_tickCount == PWM_LEVELS_NUMBER - 1) {
 	 	if (PWM_pin1Up) {

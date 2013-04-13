@@ -7,19 +7,29 @@
 #include "uart.h"
 
 /* following value must be power of 2! */
-#define UART_WRITE_BUF_SIZE 8
-#define UART_BYTE_SEND_TIME 1
-#define UART_SLEEP_TIME 5
+#define UART_WRITE_BUF_SIZE 5
+#define UART_BYTE_SEND_TIME 2
 
-static uint8_t wr_buf1[UART_WRITE_BUF_SIZE];
-static uint8_t wr_buf2[UART_WRITE_BUF_SIZE];
-static uint8_t* wr_buf = wr_buf1;
+static idata uint8_t send_wr_buf1[UART_WRITE_BUF_SIZE];
+static idata uint8_t send_wr_buf2[UART_WRITE_BUF_SIZE];
+static uint8_t idata *send_wr_buf = send_wr_buf1;
+static uint8_t idata *send_rd_buf = send_wr_buf2;
 
-static uint8_t rd_index = 0;
-static uint8_t wr_index = 0;
-static bit wr_is_full = 0;
-static bit wr_is_empty = 1;
-static bit wr_is_ready = 0;
+static int8_t send_rd_index = 0;
+static int8_t send_wr_index = 0;
+
+static bit send_is_ready = 0;
+
+#define UART_READ_BUF_SIZE  10
+#define UART_BYTE_RECV_TIME 2
+
+static idata uint8_t recv_rd_buf[UART_READ_BUF_SIZE];
+
+static uint8_t recv_rd_index = 0;
+static uint8_t recv_wr_index = 0;
+
+static bit recv_is_full  = 0;
+static bit recv_is_empty = 1;
 
 void UART_Init(void)
 {
@@ -37,19 +47,21 @@ void UART_Init(void)
 static void UART_eventHandler(void) interrupt 4 using 3
 {
 	if (RI) {
-		// if input queue is full we are unable to receive any data
-		/*if (UART_isInputQueueFull) return;
-		// clear received flag to switch the UART to the ready state
 		RI = 0;
-		// store a received byte in the input queue
-		UART_inputQueue[UART_inputQueueWriteIndex++] = SBUF;
-		UART_inputQueueWriteIndex %= UART_INPUT_QUEUE_SIZE;
-		if (UART_inputQueueWriteIndex == UART_inputQueueReadIndex) {
-			UART_isInputQueueFull = 1;
-		}*/
+		if (!recv_is_full) {
+			recv_rd_buf[recv_wr_index++] = SBUF;
+			if (recv_wr_index == recv_rd_index) {
+				recv_is_full = 1;
+			}
+		}
 	} else {
-		/* signal send task that UART module is ready to send data */
-		os_send_signal(TSK_UART_WRITE);
+		/* there are data to send in current buffer */
+		TI = 0;
+		if (send_rd_index < 0) {
+			send_is_ready = 1;
+		} else {
+			SBUF = send_rd_buf[send_rd_index--];
+		}
 	}
 }
 
@@ -57,86 +69,72 @@ static void UART_eventHandler(void) interrupt 4 using 3
 
 uint8_t UART_WriteByte(uint8_t byte)
 {
-	if (wr_is_full) {
-		// output queue is full, should to try again later
-		return 0xFF;
-	} else {
-		wr_buf[wr_index++] = byte;
-		wr_index &= UART_WRITE_BUF_SIZE;
-		wr_is_full = wr_index == rd_index;
-		wr_is_empty = 0;
-		if (wr_is_ready) {
-			wr_is_ready = 0;
-			TI = 1;
-		}
+	if (send_wr_index < UART_WRITE_BUF_SIZE) {
+		/* there are empy room in buffer */
+		send_wr_buf[send_wr_index++] = byte;
+		return 0x00;
 	}
-	return 0x00;
+	return 0x01;
 }
 
 void uart_writer(void) _task_ TSK_UART_WRITE
 {
 	while(TRUE) {
 		/* wait for wake up signal */
-		os_wait1(K_SIG);
+		os_wait2(K_TMO, UART_BYTE_SEND_TIME);
 		
 		/* wait for UART module ready */
-		while (!TI);
-		TI = 0;
-		
-		/* send one byte and wait */
-		SBUF = wr_buf[rd_index++];
-		rd_index &= UART_WRITE_BUF_SIZE;
-		
-		/* input queue is empty - switch to another queue */
-		if (rd_index == wr_index) {
-			if (wr_buf == wr_buf1) {
-				wr_buf = wr_buf2;
-				rd_index = 0;
+		if (send_is_ready && send_wr_index > 0) {
+			send_rd_index = send_wr_index;
+			send_wr_index = 0;
+			send_is_ready = 0;
+			
+			if (send_wr_buf == send_wr_buf1) {
+				send_wr_buf = send_wr_buf2;
+				send_rd_buf = send_wr_buf1;
 			} else {
-				wr_buf = wr_buf1;
-				rd_index = 0;
+				send_wr_buf = send_wr_buf1;
+				send_rd_buf = send_wr_buf2;
 			}
+
+			/* send first byte from queue */
+			SBUF = send_rd_buf[send_rd_index--];
 		}
-		
-		
 	}
 }
 
 /* data reader implementation */
 
-#if 0
-
-#define UART_READ_BUF_SIZE 8
-uint8_t rd_buf[UART_READ_BUF_SIZE];
-
-uint16_t UART_RecvByte(void)
+uint16_t UART_ReadByte(void)
 {
-	RI = 0;
-	while (!RI);
-
-	return SBUF;
+	uint16_t res = 0x0000;
+	if (recv_rd_index > 0) {
+		/* read a byte from receiver input buffer */
+		res = 0x0100|recv_rd_buf[recv_rd_index++];
+		/* reset receiver fullness flag */
+		recv_is_full = 0;
+		/* and set empty flag if needed */
+		if (recv_rd_index == recv_wr_index) {
+			recv_is_empty = 1;
+		}
+		return res;
+	}
+	return res; 
 }
 
 void uart_read_data(void) _task_ TSK_UART_READ
 {
 	while(TRUE) {
-		UART_RecvData_t rd_data;
+		/* wait for wake up signal */
+		os_wait2(K_TMO, UART_BYTE_RECV_TIME);
 		
-		/* read received data */
-		do {
-			rd_data.wd = UART_RecvByte();
-			if (rd_data.bt.hb) {
-					rd_buf[0] = rd_data.bt.lb;
-			} else {
-				break;
-			}
-		} while (TRUE);
-		
-		/* signal about new data and wait to next update */
-		sys_set_status(UART_DATA_IS_AVAILABLE);
-
-		os_send_signal(TSK_MAIN);
-		os_wait1(K_SIG);
+		/* signal if data are available */
+		if (!recv_is_empty) {
+			recv_is_empty = 1;
+			
+			/* signal about new data and wait to next update */
+			sys_set_status(UART_DATA_IS_AVAILABLE);
+			os_send_signal(TSK_MAIN);
+		}
 	}
 }
-#endif

@@ -42,11 +42,11 @@ void PWM_Init(void);
 void PWM_SetPinOnOffFactor(uint8_t pinNumber, uint8_t onOffFactor);
 
 /* Starts the PWM timer - only after that PWM works */
-#define PWM_Start() { TR1 = 1; }
+#define PWM_Start() { TR2 = 1; }
 
 /* Stops the PWM timer and resets output pins */
 #define PWM_Stop() { \
-	TR1 = 0; \
+	TR2 = 0; \
 	PWM_OUTPUT_PORT &= PWM_PIN1_IMASK; \
 	PWM_OUTPUT_PORT &= PWM_PIN2_IMASK; \
  }
