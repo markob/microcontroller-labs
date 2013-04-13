@@ -43,7 +43,7 @@ void PWM_Init(void)
 	PWM_tickCount = PWM_LEVELS_NUMBER - 1;
 
 	// setup timer 0 as 16-bit timer
-	T2CON= 0x00;
+	T2CON &= 0xFC;
 	// setup initial value for timer
 	RCAP2H = PWM_TIMER_REG_TH;
 	RCAP2L = PWM_TIMER_REG_TL;

@@ -21,7 +21,7 @@ extern uint8_t SYS_status;
 #define LINE_SCAN_PINS_MASK  0x3C
 #define LINE_SCAN_PINS_SHIFT 2
 
-#define LINE_SCAN_TIMEOUT 100
+#define LINE_SCAN_TIMEOUT 5
 #define LINE_SCAN_IS_READY (0x01<<TSK_LINE_SCAN)
 
 #ifndef SYS_LINE_TASK
@@ -32,7 +32,7 @@ extern uint8_t LINE_status;
 #define RANGE_SCAN_PORT P3
 #define RANGE_SCAN_MASK 0x01
 
-#define RANGE_SCAN_TIMEOUT 100
+#define RANGE_SCAN_TIMEOUT 5
 #define RANGE_SCAN_IS_READY (0x01<<TSK_RANGE_SCAN)
 
 /* UART read module */

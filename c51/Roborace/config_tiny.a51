@@ -43,7 +43,7 @@ TIMESHARING	EQU     5	; default is 5 Hardware-Timer ticks.
 ;  user interrupt functions that may take longer than a hardware timer 
 ;  interval for execution.
 LONG_USR_INTR	EQU	0	; 0 user interrupts execute fast.
-;                               ; 1 user interrupts take long execution times.
+;                       ; 1 user interrupts take long execution times.
 ;
 ;
 ;------------------------------------------------------------------------------

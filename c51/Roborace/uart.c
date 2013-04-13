@@ -18,7 +18,7 @@ static uint8_t idata *send_rd_buf = send_wr_buf2;
 static int8_t send_rd_index = 0;
 static int8_t send_wr_index = 0;
 
-static bit send_is_ready = 0;
+static bit send_is_ready = 1;
 
 #define UART_READ_BUF_SIZE  10
 #define UART_BYTE_RECV_TIME 2
@@ -44,7 +44,7 @@ void UART_Init(void)
 	EA    = 1;
 }
 
-static void UART_eventHandler(void) interrupt 4 using 3
+static void UART_eventHandler(void) interrupt 4 using 2
 {
 	if (RI) {
 		RI = 0;
@@ -57,10 +57,11 @@ static void UART_eventHandler(void) interrupt 4 using 3
 	} else {
 		/* there are data to send in current buffer */
 		TI = 0;
-		if (send_rd_index < 0) {
-			send_is_ready = 1;
-		} else {
+		if (send_rd_index >= 0) {
 			SBUF = send_rd_buf[send_rd_index--];
+			if (send_rd_index < 0) {
+				send_is_ready = 1;
+			}
 		}
 	}
 }
@@ -122,7 +123,7 @@ uint16_t UART_ReadByte(void)
 	return res; 
 }
 
-void uart_read_data(void) _task_ TSK_UART_READ
+void uart_reader(void) _task_ TSK_UART_READ
 {
 	while(TRUE) {
 		/* wait for wake up signal */
