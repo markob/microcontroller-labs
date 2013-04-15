@@ -15,7 +15,7 @@ uint8_t SYS_status = 0x00;
 /* it's main task and here is main control loop */
 void main_task(void) _task_ 0
 {
-	uint8_t mv_speed = 12; /* motion speed - 12/16 by default */
+	uint8_t mv_speed = 8; /* motion speed - 12/16 by default */
 
 	/* initialize all other tasks */
 	os_create_task(TSK_LINE_SCAN);  /* task for line scanner read */	
@@ -75,18 +75,38 @@ void main_task(void) _task_ 0
 				switch (recv_byte) {
 				case 'w': /* move forward */
 					CarMoveFw(mv_speed);
+					UART_WriteByte('f');
+					UART_WriteByte('w');
+					UART_WriteByte('\n');
+					UART_WriteByte('\r');
 					break;
 				case 's': /* move backward */
 					CarMoveBw(mv_speed);
+					UART_WriteByte('b');
+					UART_WriteByte('w');
+					UART_WriteByte('\n');
+					UART_WriteByte('\r');
 					break;
 				case 'a': /* turn left */
 					CarTurnL();
+					UART_WriteByte('t');
+					UART_WriteByte('l');
+					UART_WriteByte('\n');
+					UART_WriteByte('\r');
 					break;
 				case 'd': /* turn right */
 					CarTurnR();
+					UART_WriteByte('t');
+					UART_WriteByte('r');
+					UART_WriteByte('\n');
+					UART_WriteByte('\r');
 					break;
 				case 'q': /* stop the car */
 					CarStop();
+					UART_WriteByte('s');
+					UART_WriteByte('t');
+					UART_WriteByte('\n');
+					UART_WriteByte('\r');
 					break;
 				case 'y': /* speed down */
 					break;

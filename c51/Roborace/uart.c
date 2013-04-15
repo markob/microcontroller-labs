@@ -21,7 +21,7 @@ static int8_t send_buf_size = 0;
 
 static bit send_is_ready = 1;
 
-#define UART_READ_BUF_SIZE  10
+#define UART_READ_BUF_SIZE  8
 #define UART_BYTE_RECV_TIME 2
 
 static idata uint8_t recv_rd_buf[UART_READ_BUF_SIZE];
@@ -51,6 +51,8 @@ static void UART_eventHandler(void) interrupt 4 using 2
 		RI = 0;
 		if (!recv_is_full) {
 			recv_rd_buf[recv_wr_index++] = SBUF;
+			recv_wr_index &= UART_READ_BUF_SIZE - 1;
+			recv_is_empty = 0;
 			if (recv_wr_index == recv_rd_index) {
 				recv_is_full = 1;
 			}
@@ -122,9 +124,10 @@ void uart_writer(void) _task_ TSK_UART_WRITE
 uint16_t UART_ReadByte(void)
 {
 	uint16_t res = 0x0000;
-	if (recv_rd_index > 0) {
+	if (!recv_is_empty) {
 		/* read a byte from receiver input buffer */
 		res = 0x0100|recv_rd_buf[recv_rd_index++];
+		recv_rd_index &= UART_READ_BUF_SIZE - 1;
 		/* reset receiver fullness flag */
 		recv_is_full = 0;
 		/* and set empty flag if needed */
@@ -143,9 +146,7 @@ void uart_reader(void) _task_ TSK_UART_READ
 		os_wait2(K_TMO, UART_BYTE_RECV_TIME);
 		
 		/* signal if data are available */
-		if (!recv_is_empty) {
-			recv_is_empty = 1;
-			
+		if (!recv_is_empty) {		
 			/* signal about new data and wait to next update */
 			sys_set_status(UART_DATA_IS_AVAILABLE);
 			os_send_signal(TSK_MAIN);
