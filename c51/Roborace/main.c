@@ -15,6 +15,8 @@ uint8_t SYS_status = 0x00;
 /* it's main task and here is main control loop */
 void main_task(void) _task_ 0
 {
+	uint8_t mv_speed = 12; /* motion speed - 12/16 by default */
+
 	/* initialize all other tasks */
 	os_create_task(TSK_LINE_SCAN);  /* task for line scanner read */	
 	os_create_task(TSK_RANGE_SCAN); /* task for range scanner read */
@@ -70,7 +72,29 @@ void main_task(void) _task_ 0
 			/* process input data from UART */
 			while (0x0100&(recv_data = UART_ReadByte())) {
 				uint8_t recv_byte = 0xFF&recv_data;
-				UART_WriteByte(recv_byte);
+				switch (recv_byte) {
+				case 'w': /* move forward */
+					CarMoveFw(mv_speed);
+					break;
+				case 's': /* move backward */
+					CarMoveBw(mv_speed);
+					break;
+				case 'a': /* turn left */
+					CarTurnL();
+					break;
+				case 'd': /* turn right */
+					CarTurnR();
+					break;
+				case 'q': /* stop the car */
+					CarStop();
+					break;
+				case 'y': /* speed down */
+					break;
+				case 'x': /* speed up */
+					break;
+				default: /* do nothing */
+					break;
+				}
 			}
 		}
 	}
