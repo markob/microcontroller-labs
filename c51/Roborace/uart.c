@@ -7,7 +7,7 @@
 #include "uart.h"
 
 /* following value must be power of 2! */
-#define UART_WRITE_BUF_SIZE 5
+#define UART_WRITE_BUF_SIZE 8
 #define UART_BYTE_SEND_TIME 2
 
 static idata uint8_t send_wr_buf1[UART_WRITE_BUF_SIZE];

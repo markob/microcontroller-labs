@@ -42,7 +42,17 @@ void main_task(void) _task_ 0
 			
 			/* get data from line sensor */
 			#if DEBUG_MODE == 1
-			UART_WriteByte(line_state);
+			{ uint8_t i = 0;
+			  for (; i < 4; i++) {
+			  	if (line_state&(0x01<<i)) {
+					UART_WriteByte('1');
+				} else {
+					UART_WriteByte('0');
+				}
+			  }
+			  UART_WriteByte('\n');
+			  UART_WriteByte('\r');
+			}
 			#endif
 		}
 		
