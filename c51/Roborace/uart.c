@@ -17,6 +17,7 @@ static uint8_t idata *send_rd_buf = send_wr_buf2;
 
 static int8_t send_rd_index = 0;
 static int8_t send_wr_index = 0;
+static int8_t send_buf_size = 0;
 
 static bit send_is_ready = 1;
 
@@ -57,11 +58,10 @@ static void UART_eventHandler(void) interrupt 4 using 2
 	} else {
 		/* there are data to send in current buffer */
 		TI = 0;
-		if (send_rd_index >= 0) {
-			SBUF = send_rd_buf[send_rd_index--];
-			if (send_rd_index < 0) {
+		if (send_rd_index == send_buf_size) {
 				send_is_ready = 1;
-			}
+		} else if (send_rd_index < send_buf_size) {
+			SBUF = send_rd_buf[send_rd_index++];
 		}
 	}
 }
@@ -85,21 +85,34 @@ void uart_writer(void) _task_ TSK_UART_WRITE
 		os_wait2(K_TMO, UART_BYTE_SEND_TIME);
 		
 		/* wait for UART module ready */
-		if (send_is_ready && send_wr_index > 0) {
-			send_rd_index = send_wr_index;
-			send_wr_index = 0;
-			send_is_ready = 0;
+		if (send_is_ready) {
+			if (send_wr_index > 1) {
+				send_buf_size = send_wr_index;
+				send_rd_index = 0;
+				send_wr_index = 0;
+				send_is_ready = 0;
 			
-			if (send_wr_buf == send_wr_buf1) {
-				send_wr_buf = send_wr_buf2;
-				send_rd_buf = send_wr_buf1;
-			} else {
-				send_wr_buf = send_wr_buf1;
-				send_rd_buf = send_wr_buf2;
+				if (send_wr_buf == send_wr_buf1) {
+					send_wr_buf = send_wr_buf2;
+					send_rd_buf = send_wr_buf1;
+				} else {
+					send_wr_buf = send_wr_buf1;
+					send_rd_buf = send_wr_buf2;
+				}
+				
+				/* send first byte from queue */
+				SBUF = send_rd_buf[send_rd_index++];
+			} else if (send_wr_index == 1) {
+				/* send only one byte and don't swap buffers */
+				SBUF = send_wr_buf[0];
+				/* following line looks as race contitions possible, however 8051 UART byte transmission
+					 is more slowly than 1 machine instruction, but this operation must always follow by
+					 byte send to UART instruction */
+				send_is_ready = 0;
+				send_wr_index = 0;
+				send_rd_index = 1;
+				send_buf_size = 1;
 			}
-
-			/* send first byte from queue */
-			SBUF = send_rd_buf[send_rd_index--];
 		}
 	}
 }
