@@ -15,7 +15,7 @@ uint8_t SYS_status = 0x00;
 /* it's main task and here is main control loop */
 void main_task(void) _task_ 0
 {
-	uint8_t mv_speed = 8; /* motion speed - 12/16 by default */
+	uint8_t mv_speed = 12; /* motion speed - 12/16 by default */
 
 	/* initialize all other tasks */
 	os_create_task(TSK_LINE_SCAN);  /* task for line scanner read */	
@@ -47,7 +47,7 @@ void main_task(void) _task_ 0
 			{ uint8_t i = 0;
 			  for (; i < 4; i++) {
 			  	if (line_state&(0x01<<i)) {
-					UART_WriteByte('1');
+					UART_WriteByte('0' + i);
 				} else {
 					UART_WriteByte('0');
 				}

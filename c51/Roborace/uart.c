@@ -61,7 +61,7 @@ static void UART_eventHandler(void) interrupt 4 using 2
 		/* there are data to send in current buffer */
 		TI = 0;
 		if (send_rd_index == send_buf_size) {
-				send_is_ready = 1;
+			send_is_ready = 1;
 		} else if (send_rd_index < send_buf_size) {
 			SBUF = send_rd_buf[send_rd_index++];
 		}
