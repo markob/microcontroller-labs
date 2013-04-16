@@ -16,6 +16,7 @@ uint8_t SYS_status = 0x00;
 void main_task(void) _task_ 0
 {
 	uint8_t mv_speed = 12; /* motion speed - 12/16 by default */
+	uint8_t line_pattern = 0x00;
 
 	/* initialize all other tasks */
 	os_create_task(TSK_LINE_SCAN);  /* task for line scanner read */	
@@ -44,16 +45,21 @@ void main_task(void) _task_ 0
 			
 			/* get data from line sensor */
 			#if DEBUG_MODE == 1
-			{ uint8_t i = 0;
-			  for (; i < 4; i++) {
-			  	if (line_state&(0x01<<i)) {
-					UART_WriteByte('0' + i);
-				} else {
-					UART_WriteByte('0');
-				}
+			{ 
+			  if (line_state != line_pattern) {
+			    uint8_t i = 0;
+			  	line_pattern = line_state;
+
+			  	for (; i < 4; i++) {
+			  		if (line_state&(0x01<<i)) {
+						UART_WriteByte('1');
+					} else {
+						UART_WriteByte('0');
+					}
+			  	}
+			  	UART_WriteByte('\n');
+			  	UART_WriteByte('\r');
 			  }
-			  UART_WriteByte('\n');
-			  UART_WriteByte('\r');
 			}
 			#endif
 		}
