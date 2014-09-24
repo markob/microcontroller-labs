@@ -1,5 +1,7 @@
+TGTDEFS	:=-mmcs51 --model-small --iram-size 256 --code-size 4096
+
 CC	:=sdcc
-CFALGS	:=-mcs51 --std-sdcc99 --model-small --iram-size 256 --verbose -Wall -Werror
+CFLAGS	:=$(TGTDEFS) --std-sdcc99 --verbose
 LDFLAGS	:=--out-fmt-ihx
 RM	:=rm -rf
 
@@ -13,7 +15,7 @@ OBJECTS	:=$(SOURCES:.c=.rel)
 $(TARGET):$(OBJECTS)
 	$(CC) $(LDFLAGS) $(CFLAGS) $(OBJECTS) -o $@
 
-%.rel: %.c
+%.rel:%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 .PHONY: clean
