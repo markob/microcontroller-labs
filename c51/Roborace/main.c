@@ -15,6 +15,9 @@ uint8_t SYS_status = 0x00;
 /* it's main task and here is main control loop */
 void main_task(void) _task_ 0
 {
+	uint8_t mv_speed = 12; /* motion speed - 12/16 by default */
+	uint8_t line_pattern = 0x00;
+
 	/* initialize all other tasks */
 	os_create_task(TSK_LINE_SCAN);  /* task for line scanner read */	
 	os_create_task(TSK_RANGE_SCAN); /* task for range scanner read */
@@ -42,7 +45,22 @@ void main_task(void) _task_ 0
 			
 			/* get data from line sensor */
 			#if DEBUG_MODE == 1
-			UART_WriteByte(line_state);
+			{ 
+			  if (line_state != line_pattern) {
+			    uint8_t i = 0;
+			  	line_pattern = line_state;
+
+			  	for (; i < 4; i++) {
+			  		if (line_state&(0x01<<i)) {
+						UART_WriteByte('1');
+					} else {
+						UART_WriteByte('0');
+					}
+			  	}
+			  	UART_WriteByte('\n');
+			  	UART_WriteByte('\r');
+			  }
+			}
 			#endif
 		}
 		
@@ -60,7 +78,49 @@ void main_task(void) _task_ 0
 			/* process input data from UART */
 			while (0x0100&(recv_data = UART_ReadByte())) {
 				uint8_t recv_byte = 0xFF&recv_data;
-				UART_WriteByte(recv_byte);
+				switch (recv_byte) {
+				case 'w': /* move forward */
+					CarMoveFw(mv_speed);
+					UART_WriteByte('f');
+					UART_WriteByte('w');
+					UART_WriteByte('\n');
+					UART_WriteByte('\r');
+					break;
+				case 's': /* move backward */
+					CarMoveBw(mv_speed);
+					UART_WriteByte('b');
+					UART_WriteByte('w');
+					UART_WriteByte('\n');
+					UART_WriteByte('\r');
+					break;
+				case 'a': /* turn left */
+					CarTurnL();
+					UART_WriteByte('t');
+					UART_WriteByte('l');
+					UART_WriteByte('\n');
+					UART_WriteByte('\r');
+					break;
+				case 'd': /* turn right */
+					CarTurnR();
+					UART_WriteByte('t');
+					UART_WriteByte('r');
+					UART_WriteByte('\n');
+					UART_WriteByte('\r');
+					break;
+				case 'q': /* stop the car */
+					CarStop();
+					UART_WriteByte('s');
+					UART_WriteByte('t');
+					UART_WriteByte('\n');
+					UART_WriteByte('\r');
+					break;
+				case 'y': /* speed down */
+					break;
+				case 'x': /* speed up */
+					break;
+				default: /* do nothing */
+					break;
+				}
 			}
 		}
 	}

@@ -17,11 +17,11 @@ extern uint8_t SYS_status;
 #endif  
 
 /* actually line scanner takes 4 pins on P3: from 2 to 5 */
-#define LINE_SCAN_PORT  P3
+#define LINE_SCAN_PORT       P2
 #define LINE_SCAN_PINS_MASK  0x3C
 #define LINE_SCAN_PINS_SHIFT 2
 
-#define LINE_SCAN_TIMEOUT 5
+#define LINE_SCAN_TIMEOUT 10
 #define LINE_SCAN_IS_READY (0x01<<TSK_LINE_SCAN)
 
 #ifndef SYS_LINE_TASK
