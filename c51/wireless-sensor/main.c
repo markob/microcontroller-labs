@@ -32,6 +32,9 @@ void main()
 	// init section
 	UART_init();
 	
+	// enable interrupts
+	EA = 1;
+	
 	// initialize all pthread tasks
 	PT_INIT(&nrf24l01_pt);
 	PT_INIT(&worker_pt);

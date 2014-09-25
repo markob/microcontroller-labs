@@ -27,11 +27,6 @@
 //#define BAUD	 0xFF40 // 38400bps @ 22.1184MHz
 //#define BAUD	 0xFF80 // 57600bps @ 22.1184MHz
 
-#define RXB  P3_0
-#define TXB  P3_1
-#define _RXB _P3_0
-#define _TXB _P3_1
-
 void UART_init(void);
 uint16_t UART_getb(void);
 uint8_t UART_putb(uint8_t byte);

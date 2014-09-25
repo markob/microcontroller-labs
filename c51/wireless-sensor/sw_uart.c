@@ -25,8 +25,14 @@ __data __at 0x0F volatile uint8_t RBIT;
 static volatile bool_t TING, RING;
 static volatile bool_t TEND, REND;
 
+// Rx pin (input)
+#define RXB  P3_0
+// Tx pin (output)
+#define TXB  P3_1
+
 void UART_init(void)
 {
+	// generic part
 	rx_rd_pos = 0;
 	rx_wr_pos = 0;
 	tx_rd_pos = 0;
@@ -35,6 +41,7 @@ void UART_init(void)
 	rx_is_ready = 1;
 	tx_is_ready = 1;
 	
+	// software UART part
 	TING = 0;
 	RING = 0;
 	TEND = 1;
@@ -49,7 +56,6 @@ void UART_init(void)
 	TR0 = 1;
 	ET0 = 1;
 	PT0 = 1;
-	EA  = 1;
 }
 
 uint16_t UART_getb(void)
@@ -91,9 +97,9 @@ static void TIMER0_ISR() __interrupt 1 __using 1
 	// process input data
 	if (RING) {
 		if (--RCNT == 0) {
-			RCNT = 3; 		// reset send baudrate counter
+			RCNT = 3; // reset send baudrate counter
 			if (--RBIT == 0) {
-				RBUF = RDAT;	// save data to RBUF
+				RBUF = RDAT; // save data to RBUF
 				RING = 0;
 				REND = 1;
 			} else {
@@ -109,20 +115,21 @@ static void TIMER0_ISR() __interrupt 1 __using 1
 	}
 	// process output data
 	if (--TCNT == 0) {
-		TCNT = 3;
-		if (TING) {
+		TCNT = 3; // reset send baudrate counter
+		if (TING) { // is data for sending?
 			if (TBIT == 0) {
-				TXB = 0;
-				TDAT = TBUF;
+				TXB = 0; // send start bit
+				TDAT = TBUF; // load data from TBUF to TDAT
+				// initialize send bit number (8 data bits + 1 stop bit)
 				TBIT = 9;
 			} else {
-				TDAT >>= 1;
+				TDAT >>= 1; // shift data to CY
 				if (--TBIT == 0) {
 					TXB = 1;
-					TING = 0;
-					TEND = 1;
+					TING = 0; // stop sending
+					TEND = 1; // set send complete flag
 				} else {
-					TXB = CY;
+					TXB = CY; // write CY to TX port
 				}
 			}
 		}
