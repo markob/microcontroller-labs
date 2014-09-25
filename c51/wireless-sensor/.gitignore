@@ -9,3 +9,5 @@
 *.ihx
 *.rel
 *.lk
+# Vim
+*.swp

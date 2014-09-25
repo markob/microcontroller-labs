@@ -11,7 +11,9 @@ static uint8_t tx_rd_pos;
 static uint8_t tx_wr_pos;
 
 static volatile bool_t rx_is_ready;
+static volatile bool_t rx_data_available;
 static volatile bool_t tx_is_ready;
+static volatile bool_t tx_data_available;
 
 __data __at 0x08 volatile uint8_t TBUF;
 __data __at 0x09 volatile uint8_t RBUF;
@@ -76,8 +78,10 @@ uint8_t UART_putb(uint8_t byte)
 		tx_buf[tx_wr_pos++] = byte;
 		if (tx_wr_pos == BUFFER_SIZE) tx_wr_pos = 0;
 		if (tx_wr_pos == tx_rd_pos) tx_is_ready = 0;
+		// set data is available for sending flag
+		tx_data_available = 1;
 		rv = 0;
-	}
+	}	
 	return rv;
 }
 
@@ -114,6 +118,16 @@ static void TIMER0_ISR() __interrupt 1 __using 1
 		RBIT = 9; // initialize receive bit number
 	}
 	// process output data
+	// process output data buffer
+	if (TEND & tx_data_available) {
+		TBUF = tx_buf[tx_rd_pos++];
+		if (tx_rd_pos == BUFFER_SIZE) tx_rd_pos = 0;
+		if (tx_rd_pos == tx_wr_pos) tx_data_available = 0;
+		TEND = 0;
+		TING = 1;
+	}
+	// transmit available data
+	// TODO: seems that error is below
 	if (--TCNT == 0) {
 		TCNT = 3; // reset send baudrate counter
 		if (TING) { // is data for sending?
