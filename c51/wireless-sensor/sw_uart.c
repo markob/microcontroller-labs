@@ -83,50 +83,48 @@ void uart_putc(unsigned char c)
 	TING = 1;	
 }
 
+/**
+ * Timr 0 ISR. It is used for software UART functionality.
+ */
 static void TIMER0_ISR() __interrupt 1 __using 1
 {
-	__asm
-		jb	_RING,00002$	
-		jb	_RXB,00000$	
-		setb	_RING
-		mov	r5,#4
-		mov	r7,#9
-		sjmp	00000$	
-	00002$:
-		djnz	r5, 00000$	;  if (--RCNT==0)
-		mov	r5,#3		; RCNT=3
-		djnz	r7, 00001$	;  if (--RBIT==0)
-		mov	_RBUF,r3	; RBUF <= r3 (RDAT)
-		clr	_RING
-		setb	_REND
-		sjmp	00000$
-	00001$:
-		mov	a,r3		; r3=RDAT	
-		mov	C,_RXB		; (C+RDAT)>>1
-		rrc	a
-		mov	r3,a
-	00000$:
-	__endasm;
-	
-	__asm
-		djnz	r4,00010$
-		mov	r4,#3
-		jnb	_TING, 00010$
-		mov	a, r6
-		jnz	00011$
-		clr	_TXB
-		mov	_TDAT,r0	; TDAT=r2 <= r0=TBUF
-		mov	r6,#9
-		sjmp	00010$
-	00011$:
-		mov	a,r2
-		setb	c
-		rrc	a
-		mov	r2,a
-		mov	_TXB,c
-		djnz	r6, 00010$
-		clr	_TING
-		setb	_TEND
-	00010$:
-	__endasm;
+	// process input data
+	if (RING) {
+		if (--RCNT == 0) {
+			RCNT = 3; 		// reset send baudrate counter
+			if (--RBIT == 0) {
+				RBUF = RDAT;	// save data to RBUF
+				RING = 0;
+				REND = 1;
+			} else {
+				RDAT >>= 1;
+				// shift Rx data to Rx buffer
+				if (RXB) RDAT |= 0x80;
+			}
+		}
+	} else if (!RXB) {
+		RING = 1; // set start receive flag
+		RCNT = 4; // initialize receive baudrate counter	
+		RBIT = 9; // initialize receive bit number
+	}
+	// process output data
+	if (--TCNT == 0) {
+		TCNT = 3;
+		if (TING) {
+			if (TBIT == 0) {
+				TXB = 0;
+				TDAT = TBUF;
+				TBIT = 9;
+			} else {
+				TDAT >>= 1;
+				if (--TBIT == 0) {
+					TXB = 1;
+					TING = 0;
+					TEND = 1;
+				} else {
+					TXB = CY;
+				}
+			}
+		}
+	}
 }
