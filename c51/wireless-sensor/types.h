@@ -10,4 +10,6 @@ typedef unsigned short u16;
 typedef signed long i32;
 typedef unsigned long u32;
 
+typedef __bit bool;
+
 #endif

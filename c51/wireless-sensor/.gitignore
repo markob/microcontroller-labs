@@ -1,0 +1,11 @@
+# SDCC
+*.sym
+*.rst
+*.lst
+*.asm
+*.hex
+*.map
+*.mem
+*.ihx
+*.rel
+*.lk
