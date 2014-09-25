@@ -2,28 +2,28 @@
 
 #define BUFFER_SIZE 4
 
-static u8 rx_buf[BUFFER_SIZE];
-static u8 tx_buf[BUFFER_SIZE];
+static uint8_t rx_buf[BUFFER_SIZE];
+static uint8_t tx_buf[BUFFER_SIZE];
 
-static u8 rx_rd_pos;
-static u8 rx_wr_pos;
-static u8 tx_rd_pos;
-static u8 tx_wr_pos;
+static uint8_t rx_rd_pos;
+static uint8_t rx_wr_pos;
+static uint8_t tx_rd_pos;
+static uint8_t tx_wr_pos;
 
-static volatile bool rx_is_ready;
-static volatile bool tx_is_ready;
+static volatile bool_t rx_is_ready;
+static volatile bool_t tx_is_ready;
 
-__data __at 0x08 volatile u8 TBUF;
-__data __at 0x09 volatile u8 RBUF;
-__data __at 0x0A volatile u8 TDAT;
-__data __at 0x0B volatile u8 RDAT;
-__data __at 0x0C volatile u8 TCNT;
-__data __at 0x0D volatile u8 RCNT;
-__data __at 0x0E volatile u8 TBIT;
-__data __at 0x0F volatile u8 RBIT;
+__data __at 0x08 volatile uint8_t TBUF;
+__data __at 0x09 volatile uint8_t RBUF;
+__data __at 0x0A volatile uint8_t TDAT;
+__data __at 0x0B volatile uint8_t RDAT;
+__data __at 0x0C volatile uint8_t TCNT;
+__data __at 0x0D volatile uint8_t RCNT;
+__data __at 0x0E volatile uint8_t TBIT;
+__data __at 0x0F volatile uint8_t RBIT;
 
-static volatile bool TING, RING;
-static volatile bool TEND, REND;
+static volatile bool_t TING, RING;
+static volatile bool_t TEND, REND;
 
 void UART_init(void)
 {
@@ -52,9 +52,9 @@ void UART_init(void)
 	EA  = 1;
 }
 
-u16 UART_getb(void)
+uint16_t UART_getb(void)
 {
-	u16 rv = 0x0100;
+	uint16_t rv = 0x0100;
 	if (rx_is_ready) {
 		rv = rx_buf[rx_rd_pos++];
 		if (rx_rd_pos == BUFFER_SIZE) rx_rd_pos = 0;
@@ -63,9 +63,9 @@ u16 UART_getb(void)
 	return rv;
 }
 
-u8 UART_putb(u8 byte)
+uint8_t UART_putb(uint8_t byte)
 {
-	u8 rv = 0x01;
+	uint8_t rv = 0x01;
 	if (tx_is_ready) {
 		tx_buf[tx_wr_pos++] = byte;
 		if (tx_wr_pos == BUFFER_SIZE) tx_wr_pos = 0;

@@ -33,7 +33,7 @@
 #define _TXB _P3_1
 
 void UART_init(void);
-u16 UART_getb(void);
-u8 UART_putb(u8 byte);
+uint16_t UART_getb(void);
+uint8_t UART_putb(uint8_t byte);
 
 #endif

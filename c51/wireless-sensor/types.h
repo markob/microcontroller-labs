@@ -3,13 +3,13 @@
 
 #include <stc12.h>
 
-typedef signed char i8;
-typedef unsigned char u8;
-typedef signed short i16;
-typedef unsigned short u16;
-typedef signed long i32;
-typedef unsigned long u32;
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed long int32_t;
+typedef unsigned long uint32_t;
 
-typedef __bit bool;
+typedef __bit bool_t;
 
 #endif
