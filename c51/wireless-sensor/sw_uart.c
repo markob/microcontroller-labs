@@ -10,27 +10,36 @@ static uint8_t rx_wr_pos;
 static uint8_t tx_rd_pos;
 static uint8_t tx_wr_pos;
 
-static volatile bool_t rx_is_ready;
-static volatile bool_t rx_data_available;
+volatile enum {
+	TX_INACTIVE,
+	TX_STARTING,
+	TX_SENDING,
+	TX_STOPPING,
+} tx_state;
+
 static volatile bool_t tx_is_ready;
 static volatile bool_t tx_data_available;
+static volatile uint8_t tx_clk_count;
+static volatile uint8_t tx_bit_count;
+static volatile uint8_t tx_send_byte;
 
-__data __at 0x08 volatile uint8_t TBUF;
-__data __at 0x09 volatile uint8_t RBUF;
-__data __at 0x0A volatile uint8_t TDAT;
-__data __at 0x0B volatile uint8_t RDAT;
-__data __at 0x0C volatile uint8_t TCNT;
-__data __at 0x0D volatile uint8_t RCNT;
-__data __at 0x0E volatile uint8_t TBIT;
-__data __at 0x0F volatile uint8_t RBIT;
+volatile uint8_t RBUF;
+volatile uint8_t RDAT;
+volatile uint8_t RCNT;
+volatile uint8_t RBIT;
 
-static volatile bool_t TING, RING;
-static volatile bool_t TEND, REND;
+static volatile bool_t rx_is_ready;
+static volatile bool_t rx_data_available;
+static volatile bool_t RING;
+static volatile bool_t REND;
 
 // Rx pin (input)
 #define RXB  P3_0
 // Tx pin (output)
 #define TXB  P3_1
+
+#define UART_lock()   (ET0 = 0)
+#define UART_unlock() (ET0 = 1)
 
 void UART_init(void)
 {
@@ -44,11 +53,13 @@ void UART_init(void)
 	tx_is_ready = 1;
 	
 	// software UART part
-	TING = 0;
-	RING = 0;
-	TEND = 1;
+	tx_state = TX_INACTIVE;
+	tx_data_available = 0;
+	tx_clk_count = 0;
+	tx_bit_count = 0;
+	tx_send_byte = 0;
+	
 	REND = 0;
-	TCNT = 0;
 	RCNT = 0;
 
 	TMOD = 0x00;
@@ -75,22 +86,17 @@ uint8_t UART_putb(uint8_t byte)
 {
 	uint8_t rv = 0x01;
 	if (tx_is_ready) {
-		tx_buf[tx_wr_pos++] = byte;
-		if (tx_wr_pos == BUFFER_SIZE) tx_wr_pos = 0;
-		if (tx_wr_pos == tx_rd_pos) tx_is_ready = 0;
-		// set data is available for sending flag
+		uint8_t wr_pos = tx_wr_pos;
+		tx_buf[wr_pos++] = byte;
+		if (wr_pos == BUFFER_SIZE) wr_pos = 0;
+		UART_lock();
+		if (wr_pos == tx_rd_pos) tx_is_ready = 0;
+		tx_wr_pos = wr_pos;
 		tx_data_available = 1;
+		UART_unlock();
 		rv = 0;
 	}	
 	return rv;
-}
-
-void uart_putc(unsigned char c)
-{
-	while (!TEND);
-	TBUF = c;
-	TEND = 0;
-	TING = 1;	
 }
 
 /**
@@ -117,35 +123,36 @@ static void TIMER0_ISR() __interrupt 1 __using 1
 		RCNT = 4; // initialize receive baudrate counter	
 		RBIT = 9; // initialize receive bit number
 	}
-	// process output data
-	// process output data buffer
-	if (TEND & tx_data_available) {
-		TBUF = tx_buf[tx_rd_pos++];
-		if (tx_rd_pos == BUFFER_SIZE) tx_rd_pos = 0;
-		if (tx_rd_pos == tx_wr_pos) tx_data_available = 0;
-		TEND = 0;
-		TING = 1;
+	// Tx channel functionality
+	if (--tx_clk_count == 0) {
+		tx_clk_count = 3; // reset send baudrate counter
+		switch (tx_state) {
+		case TX_INACTIVE: // do nothing - no data to transmit
+			break;
+		case TX_STARTING: // send start bit and get byte from queue
+			TXB = 0;
+			tx_send_byte = tx_buf[tx_rd_pos++];
+			tx_is_ready = 1;
+			if (tx_rd_pos == BUFFER_SIZE) tx_rd_pos = 0;
+			if (tx_rd_pos == tx_wr_pos) tx_data_available = 0;
+			tx_bit_count = 8;
+			tx_state = TX_SENDING;
+			break;
+		case TX_SENDING:
+			tx_send_byte <<= 1;
+			TXB = CY;
+			if (--tx_bit_count == 0) tx_state = TX_STOPPING;
+			break;
+		case TX_STOPPING:
+			TXB = 1;
+			tx_state = TX_INACTIVE;
+			break;
+		}
 	}
-	// transmit available data
-	// TODO: seems that error is below
-	if (--TCNT == 0) {
-		TCNT = 3; // reset send baudrate counter
-		if (TING) { // is data for sending?
-			if (TBIT == 0) {
-				TXB = 0; // send start bit
-				TDAT = TBUF; // load data from TBUF to TDAT
-				// initialize send bit number (8 data bits + 1 stop bit)
-				TBIT = 9;
-			} else {
-				TDAT >>= 1; // shift data to CY
-				if (--TBIT == 0) {
-					TXB = 1;
-					TING = 0; // stop sending
-					TEND = 1; // set send complete flag
-				} else {
-					TXB = CY; // write CY to TX port
-				}
-			}
+	if (tx_clk_count == 2) {
+		// check if new data is available for sending
+		if (tx_state == TX_INACTIVE && tx_data_available) {
+			tx_state = TX_STARTING;
 		}
 	}
 }
