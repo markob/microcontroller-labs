@@ -22,6 +22,11 @@ static PT_THREAD(worker_task(struct pt *pt))
 {
 	PT_BEGIN(pt);
 	for (;;) {
+		uint16_t data;
+		if ((data = UART_getb()) >> 8) {
+			uint8_t byte = (uint8_t) data;
+			UART_putb(byte);
+		}
 		PT_YIELD(pt);
 	}
 	PT_END(pt);
