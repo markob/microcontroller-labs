@@ -10,28 +10,27 @@ static uint8_t rx_wr_pos;
 static uint8_t tx_rd_pos;
 static uint8_t tx_wr_pos;
 
-volatile enum {
-	TX_INACTIVE,
-	TX_STARTING,
-	TX_SENDING,
-	TX_STOPPING,
-} tx_state;
-
+// flag indicates that transmission is active
+static volatile bool_t tx_is_active;
+// flag indicates that buffer is not full
 static volatile bool_t tx_is_ready;
+// flag indicates that buffer has data to transmit
 static volatile bool_t tx_data_available;
+// internal Tx channel implementation stuff
 static volatile uint8_t tx_clk_count;
 static volatile uint8_t tx_bit_count;
 static volatile uint8_t tx_send_byte;
 
-volatile uint8_t RBUF;
-volatile uint8_t RDAT;
-volatile uint8_t RCNT;
-volatile uint8_t RBIT;
-
+// flag indicates that data is receiving
+static volatile bool_t rx_is_active;
+// flag indicates that ???
 static volatile bool_t rx_is_ready;
+// flag indicates that data is available in buffer
 static volatile bool_t rx_data_available;
-static volatile bool_t RING;
-static volatile bool_t REND;
+// internal Rx channel implementation stuff
+static volatile uint8_t rx_clk_count;
+static volatile uint8_t rx_bit_count;
+static volatile uint8_t rx_recv_byte;
 
 // Rx pin (input)
 #define RXB  P3_0
@@ -53,15 +52,20 @@ void UART_init(void)
 	tx_is_ready = 1;
 	
 	// software UART part
-	tx_state = TX_INACTIVE;
+	// Tx channel initialization
+	tx_is_active = 0;
 	tx_data_available = 0;
 	tx_clk_count = 0;
 	tx_bit_count = 0;
 	tx_send_byte = 0;
+	// Rx channel initialization
+	rx_is_active = 0;
+	rx_data_available = 0;
+	rx_clk_count = 0;
+	rx_bit_count = 0;
+	rx_recv_byte = 0;
 	
-	REND = 0;
-	RCNT = 0;
-
+	// clock initialization
 	TMOD = 0x00;
 	AUXR = 0x80;
 	TL0 = BAUD&0xFF;
@@ -75,9 +79,13 @@ uint16_t UART_getb(void)
 {
 	uint16_t rv = 0x0100;
 	if (rx_is_ready) {
-		rv = rx_buf[rx_rd_pos++];
-		if (rx_rd_pos == BUFFER_SIZE) rx_rd_pos = 0;
+		uint8_t rd_pos = rx_rd_pos;
+		rv = rx_buf[rd_pos++];
+		if (rd_pos == BUFFER_SIZE) rd_pos = 0;
+		UART_lock();
 		if (rx_wr_pos == rx_rd_pos) rx_is_ready = 0;
+		rx_rd_pos = rd_pos;
+		UART_unlock();
 	}
 	return rv;
 }
@@ -104,55 +112,51 @@ uint8_t UART_putb(uint8_t byte)
  */
 static void TIMER0_ISR() __interrupt 1 __using 1
 {
-	// process input data
-	if (RING) {
-		if (--RCNT == 0) {
-			RCNT = 3; // reset send baudrate counter
-			if (--RBIT == 0) {
-				RBUF = RDAT; // save data to RBUF
-				RING = 0;
-				REND = 1;
+	// Rx channel functionality
+	if (rx_is_active) {
+		if (--rx_clk_count == 0) {
+			rx_clk_count = 3;
+			if (--rx_bit_count == 0) {
+				rx_buf[rx_wr_pos++] = rx_recv_byte;
+				if (rx_wr_pos == BUFFER_SIZE) rx_wr_pos = 0;
+				if (rx_wr_pos == rx_rd_pos) rx_is_ready = 0;
+				rx_is_active = 0;
 			} else {
-				RDAT >>= 1;
-				// shift Rx data to Rx buffer
-				if (RXB) RDAT |= 0x80;
+				rx_recv_byte >>= 1;
+				if (RXB) rx_recv_byte |= 0x80;
 			}
 		}
-	} else if (!RXB) {
-		RING = 1; // set start receive flag
-		RCNT = 4; // initialize receive baudrate counter	
-		RBIT = 9; // initialize receive bit number
+	} else {
+		if (!RXB) {
+			rx_is_active = 1;
+			rx_bit_count = 9;
+			rx_clk_count = 4;
+		}
 	}
 	// Tx channel functionality
 	if (--tx_clk_count == 0) {
 		tx_clk_count = 3; // reset send baudrate counter
-		switch (tx_state) {
-		case TX_INACTIVE: // do nothing - no data to transmit
-			break;
-		case TX_STARTING: // send start bit and get byte from queue
-			TXB = 0;
-			tx_send_byte = tx_buf[tx_rd_pos++];
-			tx_is_ready = 1;
-			if (tx_rd_pos == BUFFER_SIZE) tx_rd_pos = 0;
-			if (tx_rd_pos == tx_wr_pos) tx_data_available = 0;
-			tx_bit_count = 8;
-			tx_state = TX_SENDING;
-			break;
-		case TX_SENDING:
-			tx_send_byte <<= 1;
-			TXB = CY;
-			if (--tx_bit_count == 0) tx_state = TX_STOPPING;
-			break;
-		case TX_STOPPING:
-			TXB = 1;
-			tx_state = TX_INACTIVE;
-			break;
+		if (tx_is_active) {
+			if (--tx_bit_count == 9) {
+				// send start bit and get byte from queue
+				TXB = 0;
+				tx_send_byte = tx_buf[tx_rd_pos++];
+				tx_is_ready = 1;
+				if (tx_rd_pos == BUFFER_SIZE) tx_rd_pos = 0;
+				if (tx_rd_pos == tx_wr_pos) tx_data_available = 0;
+			} else if (tx_bit_count == 0) {
+				TXB = 1;
+				tx_is_active = 0;
+			} else {
+				tx_send_byte <<= 1;
+				TXB = CY;
+			}
 		}
-	}
-	if (tx_clk_count == 2) {
+	} else if (tx_clk_count == 2) {
 		// check if new data is available for sending
-		if (tx_state == TX_INACTIVE && tx_data_available) {
-			tx_state = TX_STARTING;
+		if (!tx_is_active && tx_data_available) {
+			tx_is_active = 1;
+			tx_bit_count = 10;
 		}
 	}
 }

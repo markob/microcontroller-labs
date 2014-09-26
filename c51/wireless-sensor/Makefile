@@ -1,7 +1,7 @@
 TGTDEFS	:=-mmcs51 --model-small --iram-size 256 --code-size 4096
 
 CC	:=sdcc
-CFLAGS	:=$(TGTDEFS) --std-sdcc99 --opt-code-speed --verbose
+CFLAGS	:=$(TGTDEFS) --std-sdcc99 --verbose
 LDFLAGS	:=--out-fmt-ihx
 RM	:=rm -rf
 
